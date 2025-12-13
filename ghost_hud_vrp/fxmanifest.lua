@@ -5,20 +5,17 @@ author 'GuilhermeDuck04(GHOST)'
 description 'Ghost-HUD for VRPex'
 version '1.0.0'
 
+lua54 'yes'
+
 client_scripts {
     'client/main.lua',
-    'client/voip.lua',
-    'client/minimap.lua',
-    'client/config.lua'
 }
 
 server_scripts {
     '@vrp/lib/utils.lua',
-    'config.lua',
-    'server.lua'
+    'server/server.lua'
 }
 
-shared_script 'config.lua'
 
 ui_page 'html/index.html'
 

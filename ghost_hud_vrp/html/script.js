@@ -1,7 +1,152 @@
 let rotationInterval;
 let currentConfig = {};
+let hudElementsState = {};
+let notificationQueue = [];
+let isShowingNotification = false;
 
-// Atualiza o relógio
+// =============================================
+// SISTEMA DE VOZ
+// =============================================
+const voiceLevels = {
+    whisper: { distance: 3.0, label: "Sussurro" },
+    normal: { distance: 8.0, label: "Normal" },
+    shout: { distance: 15.0, label: "Gritar" }
+};
+let currentVoiceLevel = "normal";
+let isTalking = false;
+
+function updateVoiceDisplay() {
+    const voiceEl = document.getElementById("voice");
+    if (!voiceEl) return;
+
+    // Remove todas as classes de estado anterior
+    voiceEl.classList.remove('voice-whisper', 'voice-normal', 'voice-shout', 'voice-talking');
+    
+    // Adiciona classe do nível atual
+    voiceEl.classList.add(`voice-${currentVoiceLevel}`);
+    
+    // Adiciona classe se estiver falando
+    if (isTalking) {
+        voiceEl.classList.add('voice-talking');
+    }
+
+    // Atualiza texto do modo de voz
+    const voiceModeEl = document.getElementById("voice-mode");
+    if (voiceModeEl) {
+        voiceModeEl.textContent = voiceLevels[currentVoiceLevel].label;
+    }
+
+    // Atualiza barra de voz (opcional)
+    updateStatusFill('voice', isTalking ? 100 : 0);
+}
+
+// Allow multiple notifications (balões) simultaneously and respect caller duration.
+function showNotification(title, message, type = 'info', duration) {
+    // Determine final duration in ms:
+    // - If duration is provided and >= 1000 assume milliseconds.
+    // - If provided and < 1000 assume seconds and convert to ms.
+    // - If not provided, fallback to a short default (3000ms) so notifications don't persist forever.
+    let finalDuration;
+    if (typeof duration !== 'undefined' && duration !== null) {
+        if (Number(duration) >= 1000) finalDuration = Number(duration);
+        else finalDuration = Number(duration) * 1000;
+    } else {
+        finalDuration = 3000; // minimal fallback — callers should provide their own duration
+    }
+
+    const notification = {
+        title,
+        message,
+        type: type.toLowerCase(),
+        duration: finalDuration
+    };
+
+    // Push to queue and try to display
+    notificationQueue.push(notification);
+    processNotificationQueue();
+}
+
+function processNotificationQueue() {
+    const MAX_SIMULTANEOUS = 5;
+    const container = document.getElementById('notification-container');
+    if (!container) return;
+
+    // Count active notifications on screen
+    let active = container.querySelectorAll('.notification').length;
+
+    // Fill up available slots
+    while (notificationQueue.length > 0 && active < MAX_SIMULTANEOUS) {
+        const { title, message, type, duration } = notificationQueue.shift();
+
+        const notificationEl = document.createElement('div');
+        notificationEl.className = `notification ${type}`;
+        notificationEl.innerHTML = `
+            <div class="notification-title">
+                <i class="fas ${getNotificationIcon(type)}"></i>
+                <span>${title}</span>
+            </div>
+            <div class="notification-message">${message}</div>
+            <div class="notification-progress">
+                <div class="notification-progress-bar"></div>
+            </div>
+        `;
+
+        container.appendChild(notificationEl);
+        active = active + 1;
+
+        // Force reflow to start animation
+        void notificationEl.offsetWidth;
+        notificationEl.classList.add('show');
+
+        // Progress bar
+        const progressBar = notificationEl.querySelector('.notification-progress-bar');
+        const startTime = Date.now();
+
+        const updateProgress = () => {
+            const elapsed = Date.now() - startTime;
+            const remaining = Math.max(0, duration - elapsed);
+            const percent = (remaining / duration) * 100;
+            progressBar.style.width = `${percent}%`;
+            if (remaining > 0) requestAnimationFrame(updateProgress);
+        };
+        updateProgress();
+
+        // Remove afterwards
+        setTimeout(() => {
+            notificationEl.classList.remove('show');
+            notificationEl.classList.add('hide');
+            setTimeout(() => {
+                notificationEl.remove();
+            }, 300);
+        }, duration);
+    }
+}
+
+function getNotificationIcon(type) {
+    const icons = {
+        'success': 'fa-check-circle',
+        'error': 'fa-times-circle',
+        'warning': 'fa-exclamation-triangle',
+        'info': 'fa-info-circle',
+        // Tipos do Notify
+        'negado': 'fa-ban',
+        'aviso': 'fa-exclamation-circle',
+        'sucesso': 'fa-check-circle',
+        'policia': 'fa-shield-halved',
+        'hospital': 'fa-truck-medical',
+        'mecanica': 'fa-screwdriver-wrench'
+    };
+    return icons[type] || 'fa-info-circle';
+}
+// showNotification('Sucesso', 'Sua ação foi concluída com sucesso!', 'success');
+// showNotification('Erro', 'Algo deu errado!', 'error');
+// showNotification('Aviso', 'Isso é um aviso importante!', 'warning');
+// showNotification('Informação', 'Esta é uma mensagem informativa.', 'info');
+
+
+// =============================================
+// FUNÇÕES ORIGINAIS (MANTIDAS SEM ALTERAÇÃO)
+// =============================================
 function updateClock() {
     fetch(`https://${GetParentResourceName()}/getGameTime`)
         .then(response => response.json())
@@ -10,7 +155,6 @@ function updateClock() {
             const minutes = data.minutes.toString().padStart(2, '0');
             document.getElementById('time').textContent = `${hours}:${minutes}`;
             
-            // Adiciona classe para noite/dia baseado na hora
             const clock = document.getElementById('clock');
             clock.classList.toggle('night-time', data.hours < 6 || data.hours >= 18);
         })
@@ -20,7 +164,6 @@ function updateClock() {
 setInterval(updateClock, 1000);
 updateClock();
 
-// Atualiza a barra de vida
 function setHealthBar(percent) {
     const healthBar = document.getElementById('health-bar-progress');
     const healthValue = document.getElementById('health-value');
@@ -28,7 +171,6 @@ function setHealthBar(percent) {
     if (healthBar) {
         healthBar.style.width = `${percent}%`;
         
-        // Mudar cor conforme a vida diminui
         if (percent <= 20) {
             healthBar.style.background = '#ff3e3e';
         } else if (percent <= 50) {
@@ -51,7 +193,6 @@ function setHealthBar(percent) {
     }
 }
 
-// Atualiza os valores de status
 function updateStatusValue(elementId, value) {
     const el = document.getElementById(elementId);
     if (el) el.textContent = Math.round(value);
@@ -70,11 +211,14 @@ function updateStatusFill(elementId, percent) {
     }
 }
 
-// Ouvinte de mensagens NUI
+// =============================================
+// OUVINTE DE MENSAGENS
+// =============================================
 window.addEventListener('message', (event) => {
     const data = event.data;
     const logo = document.getElementById('logo');
-
+    
+    
     if (data.action === "updateStatus") {
         setHealthBar(data.health);
         updateStatusFill('armor', data.armor);
@@ -83,46 +227,26 @@ window.addEventListener('message', (event) => {
         updateStatusFill('stamina', data.stamina);
         updateStatusFill('stress', data.stress);
         updateStatusFill('voice', data.voicePercent);
- document.getElementById("job-name").textContent = data.job;
-document.getElementById("id-card-name").textContent = data.user_id;
+        document.getElementById("job-name").textContent = data.job;
+        document.getElementById("id-card-name").textContent = data.user_id;
 
-
-        // Atualiza os valores de texto
         updateStatusValue('armor-value', data.armor);
         updateStatusValue('hunger-value', data.hunger);
         updateStatusValue('thirst-value', data.thirst);
         updateStatusValue('stamina-value', data.stamina);
         updateStatusValue('stress-value', data.stress);
         updateStatusValue('voice-value', data.voicePercent);
+        
+        // Atualiza voz (NOVO)
+    if (data.voiceLevel !== undefined) {
+        currentVoiceLevel = data.voiceLevel;
     }
-
-    if (data.action === "updateVoice") {
-        const voiceEl = document.getElementById("voice");
-        if (voiceEl) {
-            voiceEl.classList.remove('whisper', 'normal', 'shout', 'talking');
-
-            if (data.voiceMode) {
-                voiceEl.classList.add(data.voiceMode);
-            }
-
-            updateStatusFill('voice', data.voicePercent);
-
-            if (data.isTalking) {
-                voiceEl.classList.add('talking');
-            }
-            
-            const voiceModeEl = document.getElementById("voice-mode");
-            if (voiceModeEl) {
-                const modeText = {
-                    'whisper': 'Sussurro',
-                    'normal': 'Normal',
-                    'shout': 'Gritando'
-                };
-                voiceModeEl.textContent = modeText[data.voiceMode] || 'Normal';
-            }
-        }
+    if (data.isTalking !== undefined) {
+        isTalking = data.isTalking;
     }
-    
+    updateVoiceDisplay();
+}
+
     if (data.action === "updateRadio") {
         const radioEl = document.getElementById("radio-hud");
         const frequencyEl = document.getElementById("radio-frequency");
@@ -137,51 +261,17 @@ document.getElementById("id-card-name").textContent = data.user_id;
         }
     }
 
+    if (event.data.action === "showNotification") {
+        showNotification(event.data.title, event.data.message, event.data.type, event.data.duration);
+    }
+
     if (data.action === "updateHUD") {
         currentConfig = data.config; 
         UpdateHUDPosition(data.config);
     }
 
-    if (data.action === "vehicleHUD") {
-        const el = document.getElementById("vehicle-hud");
-        if (data.show) {
-            el.classList.remove("hidden");
-            document.getElementById("speed").textContent = data.speed;
-            document.getElementById("fuel").textContent = Math.round(data.fuel);
-            
-            // Atualiza RPM
-            if (data.rpm !== undefined) {
-                const rpmPercent = Math.min(100, data.rpm * 100);
-                document.getElementById("rpm-bar").style.width = `${rpmPercent}%`;
-                document.querySelector(".rpm-value").textContent = `${Math.round(data.rpm * 7000)} RPM`;
-            }
-            
-            // Atualiza marcha
-            if (data.gear !== undefined) {
-                const gearEl = document.getElementById("gear-indicator");
-                gearEl.textContent = data.gear === -1 ? 'R' : (data.gear === 0 ? 'N' : data.gear);
-            }
-
-            const engineEl = document.getElementById("engine-status");
-            engineEl.classList.toggle('on', data.engine);
-            engineEl.classList.toggle('off', !data.engine);
-            
-            const lockEl = document.getElementById("lock-status");
-            lockEl.classList.toggle('locked', data.locked);
-            lockEl.classList.toggle('unlocked', !data.locked);
-            
-            const seatbeltEl = document.getElementById("seatbelt-status");
-            seatbeltEl.classList.toggle('on', data.seatbelt);
-            seatbeltEl.classList.toggle('off', !data.seatbelt);
-
-            if (data.engine) {
-                engineEl.classList.add('active');
-            } else {
-                engineEl.classList.remove('active');
-            }
-        } else {
-            el.classList.add("hidden");
-        }
+        if (event.data.action === "vehicleHUD") {
+        updateVehicleHud(event.data);
     }
 
     if (data.action === "updateStreet") {
@@ -203,17 +293,89 @@ document.getElementById("id-card-name").textContent = data.user_id;
     }
 
     if (data.action === "updatePlayerData") {
-        // Emprego
-        if (data.job !== undefined) {
-            document.getElementById("job-name").textContent = data.job;
+  if (data.job !== undefined) {
+        const jobElement = document.getElementById('job-name');
+        if (jobElement) {
+            jobElement.textContent = data.job;
         }
-        
-        // ID (Server ID)
+    }
+
         if (data.user_id !== undefined) {
             document.getElementById("id-card-name").textContent = data.user_id;
         }
     }
+    if (event.data.action === "Notify") {
+        const typeMap = {
+            "negado": "error",
+            "aviso": "warning",
+            "sucesso": "success",
+            "info": "info",
+            "policia": "policia",
+            "hospital": "hospital",
+            "mecanica": "mecanica"
+        };
+        const notifyType = typeMap[event.data.type] || "info";
+
+        // Support durations passed both in seconds or milliseconds.
+        let msDuration = undefined;
+        if (typeof event.data.time !== 'undefined' && event.data.time !== null) {
+            const t = Number(event.data.time);
+            if (!isNaN(t)) {
+                msDuration = t >= 1000 ? t : t * 1000;
+            }
+        }
+
+        showNotification(
+            event.data.title || notifyType.toUpperCase(),
+            event.data.message,
+            notifyType,
+            msDuration
+        );
+    }
 });
+
+
+function updateVehicleHud(data) {
+    const el = document.getElementById("vehicle-hud");
+    if (data.show) {
+        el.classList.remove("hidden");
+        
+        // Velocidade
+        document.getElementById("speed").textContent = data.speed;
+        
+        // RPM - Agulha do conta-giros (0-8)
+        const rpmValue = data.rpm * 9; // Converte para escala 0-8
+        const rpmAngle = -180 + (rpmValue * 33); // 45 graus por marca (0-8 = 360 graus)
+        document.querySelector(".rpm-needle").style.transform = `translate(-50%, -100%) rotate(${rpmAngle}deg)`;
+        
+        // Combustível
+        const fuelBar = document.getElementById("fuel-bar");
+        if (fuelBar) {
+            fuelBar.style.setProperty('--fuel-level', `${Math.round(data.fuel)}%`);
+        }
+
+        if (data.gear) {
+            document.getElementById("gear-value").textContent = data.gear;
+        }
+        
+        // Estado do motor e lataria
+        const engineHealth = data.engineHealth || 100;
+        const bodyHealth = data.bodyHealth || 100;
+        document.getElementById("engine-health-bar").style.setProperty('--engine-health', `${engineHealth}%`);
+        document.getElementById("body-health-bar").style.setProperty('--body-health', `${bodyHealth}%`);
+        
+        // Cinto e portas
+        const cintoEl = document.getElementById("cinto-status");
+        cintoEl.classList.toggle('on', data.cinto);
+        cintoEl.classList.toggle('off', !data.cinto);
+        
+        const lockEl = document.getElementById("lock-status");
+        lockEl.classList.toggle('locked', data.locked);
+        lockEl.classList.toggle('unlocked', !data.locked);
+    } else {
+        el.classList.add("hidden");
+    }
+}
 
 window.addEventListener('load', () => {
     fetch(`https://${GetParentResourceName()}/nuiReady`, {
@@ -228,76 +390,64 @@ window.addEventListener('load', () => {
 });
 
 function UpdateHUDPosition(config) {
+    if (!config) return;
+
     const hudContainer = document.getElementById('hud-container');
+    if (!hudContainer) return;
+
+    // Atualiza apenas o estado do HUD geral
     hudContainer.style.display = config.hudEnabled ? 'block' : 'none';
-
-    if (!config.hudEnabled) {
-        document.querySelectorAll('#clock, #status-hud, #vehicle-hud, #weapon-hud, #topright-hud, .status-item').forEach(el => {
-            el.style.display = 'none';
-        });
-        return;
-    }
-
-    const mainElements = {
-        'health': 'health',
+    
+    // Atualiza cada elemento individualmente
+    const elements = {
+        'health': 'health-bar-container',
         'armor': 'armor',
         'hunger': 'hunger',
         'thirst': 'thirst',
         'stamina': 'stamina',
         'stress': 'stress',
         'voice': 'voice',
-        'vehicle-hud': 'vehicle',
-        'weapon-hud': 'weapon',
-        'coupon': 'coupon',
+        'vehicle': 'vehicle-hud',
+        'weapon': 'weapon-hud',
         'job': 'job',
         'id': 'id',
         'clock': 'clock'
     };
 
-    for (const [elementId, configKey] of Object.entries(mainElements)) {
-        const el = document.getElementById(elementId);
-        if (el) {
-            el.style.display = config.elements[configKey]?.enabled ? 'flex' : 'none';
+    Object.entries(elements).forEach(([key, id]) => {
+        const element = document.getElementById(id);
+        if (element) {
+            const shouldShow = config.hudEnabled && 
+                             (config.elements?.[key]?.enabled ?? true);
+            element.style.display = shouldShow ? '' : 'none'; // Remove 'flex' para manter o CSS padrão
         }
-    }
+    });
 
-    // Gerencia a visibilidade do container #topright-hud
-    const topRightElements = ['coupon', 'job', 'id'];
-    const isTopRightVisible = topRightElements.some(key => config.elements[key]?.enabled);
+    // Atualiza o container do topo direito
     const topRightContainer = document.getElementById('topright-hud');
     if (topRightContainer) {
-        topRightContainer.style.display = isTopRightVisible ? 'flex' : 'none';
+        const shouldShow = config.hudEnabled && 
+                         ((config.elements?.job?.enabled ?? true) || 
+                          (config.elements?.id?.enabled ?? true));
+        topRightContainer.style.display = shouldShow ? 'flex' : 'none';
     }
 
-    // Atualiza elementos de status individuais
-    document.querySelectorAll('.status-item').forEach(el => {
-        const elementId = el.id;
-        if (elementId && config.elements[elementId]) {
-            el.style.display = config.elements[elementId].enabled ? 'flex' : 'none';
-        }
-    });
-
-    // Atualiza exibição dos valores numéricos
-    const showValues = config.showValues ?? false;
+    // Atualiza valores numéricos
+    const showValues = config.showValues ?? true;
     document.querySelectorAll('.status-value').forEach(el => {
         el.style.display = showValues ? 'block' : 'none';
-        el.style.marginTop = showValues ? '2px' : '0';
     });
-        if (!showValues) {
-        document.querySelectorAll('.status-item').forEach(item => {
-            item.style.alignItems = 'center';
-            item.style.justifyContent = 'center';
-        });
-    }
 
     // Atualiza minimapa
-    fetch(`https://${GetParentResourceName()}/updateMinimap`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-            show: config.hudEnabled && config.minimapEnabled 
-        })
-    });
+    if (GetParentResourceName()) {
+        fetch(`https://${GetParentResourceName()}/updateMinimap`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                show: config.hudEnabled && config.minimapEnabled 
+            })
+        }).catch(e => console.error('Error updating minimap:', e));
+    }
 }
 
 function updateStreetName(streetName) {
@@ -308,7 +458,6 @@ function updateStreetName(streetName) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Adiciona efeito de hover nos elementos
     const elements = document.querySelectorAll('.element-toggle');
     elements.forEach(el => {
         el.addEventListener('mouseenter', () => {

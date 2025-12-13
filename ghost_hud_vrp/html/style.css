@@ -161,7 +161,7 @@ html, body {
     border-radius: 20px;
     position: absolute;
     bottom: 220px;
-    left: 160px;
+    left: 175px;
     transform: translateX(-50%);
     background: rgba(0, 0, 0, 0.264);
     border: 1px solid rgba(255, 255, 255, 0.1);
@@ -209,37 +209,6 @@ html, body {
     color: #b9b9b9;
 }
 
-/* #voice-fill {
-    transition: stroke-dashoffset 0.3s, stroke 0.3s;
-}
-
-
-#voice.whispering #voice-fill {
-    stroke: #4caf50;  
-}
-
-#voice.normal #voice-fill {
-    stroke: #2e7d32;  
-}
-
-#voice.shouting #voice-fill {
-    stroke: #c62828;
-}
-
-
-#voice.talking .circle-progress-icon {
-    color: #4caf50;
-    background: rgba(76, 175, 80, 0.2);
-    box-shadow: 0 0 10px rgba(76, 175, 80, 0.3);
-    text-shadow: 0 0 15px rgba(76, 175, 80, 0.8);
-    transform: scale(1.1);
-    animation: pulse 1.5s infinite alternate;
-}
-
-@keyframes pulse {
-    from { transform: translate(-50%, -50%) scale(1); }
-    to { transform: translate(-50%, -50%) scale(1.1); }
-} */
 /* Estilo do ícone de voz */
 #voice i {
     transition: all 0.3s ease;
@@ -266,11 +235,16 @@ html, body {
 #voice.talking i {
     animation: voicePulse 0.8s infinite alternate;
 }
-
-/* @keyframes voicePulse {
-    0% { transform: scale(1); }
-    100% { transform: scale(1.1); }
-} */
+@keyframes voicePulse {
+    0% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    100% {
+        transform: scale(1.1);
+        opacity: 0.8;
+    }
+}
 
 /* Estilo do preenchimento da voz */
 #voice i::after {
@@ -285,6 +259,28 @@ html, body {
     transition: height 0.3s ease;
     z-index: -1;
 }
+
+/* Estilos para os modos de voz */
+#voice.voice-whisper i {
+    color: #4CAF50;
+    background: rgba(76, 175, 80, 0.2);
+}
+
+#voice.voice-normal i {
+    color: #2196F3;
+    background: rgba(33, 150, 243, 0.2);
+}
+
+#voice.voice-shout i {
+    color: #F44336;
+    background: rgba(244, 67, 54, 0.2);
+}
+
+/* Animação quando está falando */
+#voice.voice-talking i {
+    animation: voicePulse 0.8s infinite alternate;
+}
+
 /* Estilo para o container do canto superior direito */
 #topright-hud {
     position: absolute;
@@ -361,7 +357,7 @@ html, body {
 #health-bar-container {
   position: absolute;
   bottom: 20px;
-  left: 50%;
+  right: -9.2%;
   transform: translateX(-50%);
   width: 80%;
   max-width: 400px;
@@ -397,21 +393,20 @@ html, body {
   text-shadow: 0 1px 2px rgba(255, 255, 255, 0.5);
 }
 
-/* Container para os status secundários */
-/* Container para os status secundários */
+
 #secondary-status-container {
-  position: absolute;
-  bottom: 60px; /* Acima da barra de vida */
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  gap: 15px;
-  background: rgba(0, 0, 0, 0.264);
-  padding: 12px 25px;
-  border-radius: 25px;
-  backdrop-filter: transparent(8px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+    position: absolute;
+    bottom: 60px; /* Posiciona acima da barra de vida */
+    right: 20px; /* Alinha à direita (ajuste o valor conforme necessário) */
+    transform: none; /* Remove o translateX centralizado */
+    display: flex;
+    gap: 15px;
+    background: rgba(0, 0, 0, 0.264);
+    padding: 12px 25px;
+    border-radius: 25px;
+    backdrop-filter: transparent(8px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
 }
 
 /* Estilo dos itens de status secundários */
@@ -486,22 +481,6 @@ html, body {
 #radiation i { color: #f44336; }
 #temperature i { color: #00bcd4; }
 
-/* --- FIM DA CORREÇÃO --- */
-
-/* Efeito quando está falando */
-/* #voice.talking i {
-  color: #4caf50;
-  background: rgba(76, 175, 80, 0.2);
-  animation: pulse 1.5s infinite alternate;
-  box-shadow: 0 0 10px rgba(76, 175, 80, 0.3);
-  text-shadow: 0 0 15px rgba(76, 175, 80, 0.8);
-  transform: scale(1.1);
-}
-
-@keyframes pulse {
-  from { transform: scale(1); }
-  to { transform: scale(1.1); }
-} */
 
 /* Adaptação para telas menores */
 @media (max-width: 768px) {
@@ -651,195 +630,267 @@ html, body {
     margin: 0 !important;
 }
 
-/* Vehicle HUD - Modern Digital Style */
+/* Vehicle HUD - Circular Style */
 #vehicle-hud {
   position: absolute;
-  left: 320px;
-  bottom: 34px;
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-  pointer-events: none;
+  bottom: 30px;
+  left: 340px;
   z-index: 10;
-  background: rgba(0, 0, 0, 0.264);
-  border-radius: 20px;
-  padding: 15px;
-  backdrop-filter: transparent(8px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+  pointer-events: none;
 }
 
-.vehicle-speedometer {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+.vehicle-circle {
+  position: relative;
+  width: 250px;
+  height: 250px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.30);
+  border: 2px solid #d0d0d034;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.6);
+  backdrop-filter: transparent(6px);
+}
+.vehicle-circle::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100px;
+  height: 100px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+.vehicle-circle::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 80px;
+  height: 80px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
 }
 
-.speed-display {
-  display: flex;
-  align-items: baseline;
-  gap: 5px;
+.speedometer {
+  position: absolute;
+  bottom: 5px;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+  z-index: 4;
 }
 
-#speed {
-  font-size: 2.2rem;
-  font-weight: 700;
+.speed-value {
+  font-size: 2.4rem;
+  font-weight: bold;
   color: #ffffff;
-  text-shadow: 0 0 15px rgba(0, 180, 255, 0.8);
-  font-family: 'Audiowide', 'Segoe UI', sans-serif;
-  letter-spacing: 1px;
+  font-family: 'Audiowide', sans-serif;
+  text-shadow: 0 0 8px rgba(0, 180, 255, 0.9);
 }
 
 .speed-unit {
-  font-size: 1rem;
-  color: rgba(255, 255, 255, 0.8);
-  text-shadow: 0 0 5px rgba(0, 180, 255, 0.5);
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.6);
 }
 
-/* RPM Meter */
-.rpm-container {
-  width: 100%;
-  height: 8px;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 4px;
-  overflow: hidden;
-  margin-top: 5px;
-  position: relative;
+.rpm-meter {
+  position: absolute;
+  width: 200px;
+  height: 200px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
 }
 
-#rpm-bar {
-  height: 100%;
-  width: 0%;
-  background: linear-gradient(90deg, #4CAF50, #FFC107, #F44336);
-  border-radius: 4px;
-  transition: width 0.3s ease;
+.rpm-needle {
+  position: absolute;
+  width: 4px;
+  height: 90px;
+  background: red;
+  top: 50%;
+  left: 50%;
+  transform-origin: bottom center;
+  transform: translate(-50%, -100%) rotate(-90deg);
+  border-radius: 2px;
+  z-index: 5;
 }
 
 .rpm-markers {
   position: absolute;
-  top: 0;
-  left: 0;
   width: 100%;
   height: 100%;
-  display: flex;
-  justify-content: space-between;
 }
 
-.rpm-marker {
-  width: 2px;
-  height: 100%;
-  background: rgba(255, 255, 255, 0.3);
-}
-
-.rpm-value {
+.marker {
   position: absolute;
-  right: 0;
-  top: -18px;
-  font-size: 0.8rem;
-  color: rgba(255, 255, 255, 0.7);
-  font-family: 'Audiowide', 'Segoe UI', sans-serif;
+  font-size: 1.2rem;
+  color: #ffffff;
+  font-family: monospace;
+  transform: translate(-50%, -50%);
 }
 
-/* Fuel Display */
-.fuel-display {
+/* Posicionamento exato tipo analógico (semicírculo superior) */
+.marker-0 { top: 90%; left: 25%; }
+.marker-1 { top: 65%; left: 5%; }
+.marker-2 { top: 40%; left: 0%; }
+.marker-3 { top: 20%; left: 10%; }
+.marker-4 { top: 5%; left: 30%; }
+.marker-5 { top: 0%; left: 60%; }
+.marker-6 { top: 15%; left: 85%; }
+.marker-7 { top: 40%; left: 96%; }
+.marker-8 { top: 70%; left: 94%; }
+
+/* Zona vermelha de RPM (de 7 para 8) */
+.marker-7, .marker-8 {
+  color: #ff3e3e;
+}
+
+/* Estilos adicionais */
+.vehicle-controls {
+  position: absolute;
+  top: 10px;
+  width: 100%;
   display: flex;
-  align-items: center;
-  gap: 8px;
-  color: #FFC107;
-  text-shadow: 0 0 8px rgba(255, 193, 7, 0.5);
-  margin-top: 5px;
+  justify-content: space-around;
+  z-index: 3;
 }
 
-.fuel-display i {
-  font-size: 1.1rem;
-}
-
-#fuel {
-  font-size: 1.1rem;
-  font-weight: 600;
-}
-
-.fuel-unit {
-  font-size: 0.9rem;
-  opacity: 0.8;
-}
-
-/* Vehicle Status Icons */
 .vehicle-status {
+  background: rgba(0, 0, 0, 0.30);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 15px;
+  padding: 10px;
+  position: absolute;
+  bottom: 0px;
+  left: 100%;
+  width: 100%;
   display: flex;
-  justify-content: center;
-  gap: 20px;
-  padding: 10px 0 5px;
+  justify-content: space-around;
+  z-index: 3;
 }
 
-.status-icon {
+.vehicle-status i {
+  font-size: 1.2rem;
+  color: #ffffff;
+  transition: transform 0.2s ease;
+}
+
+
+.status-item {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 5px;
 }
 
-.status-icon i {
-  font-size: 1.2rem;
-  width: 36px;
-  height: 36px;
+.status-item i {
+
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.8);
+  margin-bottom: 5px;
+  transition: transform 0.2s ease;
+}
+
+.status-bar {
+  width: 50px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.status-bar::after {
+  content: '';
+  display: block;
+  height: 100%;
+  width: 100%;
+  transition: width 0.3s ease;
+}
+
+#engine-health-bar::after {
+  background: linear-gradient(to right, #F44336, #FFC107, #4CAF50);
+  width: var(--engine-health, 100%);
+}
+
+#body-health-bar::after {
+  background: linear-gradient(to right, #F44336, #FFC107, #4CAF50);
+  width: var(--body-health, 100%);
+}
+
+#fuel-bar {
+  width: 50px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+#fuel-bar::after {
+  content: '';
+  display: block;
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(to right, #F44336, #FFC107, #4CAF50);
+  width: var(--fuel-level, 100%);
+  transition: width 0.3s ease;
+}
+
+
+.vehicle-controls {
+  /* position: absolute; */
+  top: 45px;
+  left: 0;
+  right: 0; 
+  display: flex;
+  justify-content: space-around;
+  padding: 0 60px;
+  z-index: 2;
+}
+
+.control-item {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 50%;
-  transition: all 0.3s ease;
+  background: rgba(255, 255, 255, 0.1);
 }
 
-.status-icon span {
-  font-size: 0.7rem;
-  color: rgba(255, 255, 255, 0.7);
-  text-transform: uppercase;
-  letter-spacing: 1px;
+.control-item i {
+  font-size: 0.9rem;
 }
 
-/* Engine Status */
-#engine-status.on i {
+#cinto-status.on {
+  top: 110%;
+  left: 25%;
+  position: absolute;
+  background: rgba(76, 175, 80, 0.3);
   color: #4CAF50;
-  background: rgba(76, 175, 80, 0.2);
-  text-shadow: 0 0 15px rgba(76, 175, 80, 0.8);
-  box-shadow: 0 0 10px rgba(76, 175, 80, 0.3);
 }
 
-#engine-status.off i {
-  color: #f44336;
-  background: rgba(244, 67, 54, 0.2);
-  text-shadow: 0 0 15px rgba(244, 67, 54, 0.8);
-  box-shadow: 0 0 10px rgba(244, 67, 54, 0.3);
+#cinto-status.off {
+  top: 110%;
+  left: 25%;
+  position: absolute;
+  background: rgba(244, 67, 54, 0.3);
+  color: #F44336;
 }
 
-/* Seatbelt Status */
-#seatbelt-status.on i {
+#lock-status.locked {
+  position: absolute;
+  top: 110%;
+  right: 25%;
+  background: rgba(76, 175, 80, 0.3);
   color: #4CAF50;
-  background: rgba(76, 175, 80, 0.2);
-  text-shadow: 0 0 15px rgba(76, 175, 80, 0.8);
-  box-shadow: 0 0 10px rgba(76, 175, 80, 0.3);
 }
 
-#seatbelt-status.off i {
-  color: #f44336;
-  background: rgba(244, 67, 54, 0.2);
-  text-shadow: 0 0 15px rgba(244, 67, 54, 0.8);
-  box-shadow: 0 0 10px rgba(244, 67, 54, 0.3);
-}
-
-/* Lock Status */
-#lock-status.locked i {
-  color: #4CAF50;
-  background: rgba(117, 244, 54, 0.2);
-  text-shadow: 0 0 15px rgba(79, 244, 54, 0.8);
-  box-shadow: 0 0 10px rgba(105, 244, 54, 0.3);
-}
-
-#lock-status.unlocked i {
-  color: #f44336;
-  background: rgba(175, 76, 76, 0.2);
-  text-shadow: 0 0 15px rgba(175, 76, 76, 0.8);
-  box-shadow: 0 0 10px rgba(175, 76, 76, 0.3);
+#lock-status.unlocked {
+  position: absolute;
+  top: 110%;
+  right: 25%;
+  background: rgba(244, 67, 54, 0.3);
+  color: #F44336;
 }
 
 /* Active Animations */
@@ -854,29 +905,35 @@ html, body {
 }
 
 /* Gear Indicator */
-#gear-indicator {
-  position: absolute;
-  top: -10px;
-  right: 15px;
-  background: rgba(0, 0, 0, 0.5);
-  color: white;
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: 'Audiowide', sans-serif;
-  font-size: 1.1rem;
-  font-weight: bold;
-  border: 2px solid rgba(255, 255, 255, 0.2);
+.gear-indicator {
+    position: absolute;
+    top: 0%;
+    right: -20px;
+    transform: translateY(-50%);
+    width: 40px;
+    height: 40px;
+    background: rgba(0, 0, 0, 0.30);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+    z-index: 10;
+}
+
+#gear-value {
+    font-family: 'Audiowide', sans-serif;
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: white;
 }
 
 /* Weapon HUD */
 #weapon-hud {
   position: absolute;
-  bottom: 220px;
-  left: 300px;
+  bottom: 280px;
+  left: 30px;
   display: flex;
   align-items: center;
   gap: 15px;
@@ -908,17 +965,6 @@ html, body {
   font-size: 0.9rem;
   opacity: 0.6;
 }
-
-/* Voice Talking Animation */
-/* .talking .circle-progress-icon {
-  animation: pulse 1s infinite;
-}
-
-@keyframes pulse {
-  0% { opacity: 1; }
-  50% { opacity: 0.5; }
-  100% { opacity: 1; }
-} */
 
 /* Config Panel */
 #config-panel {
@@ -1367,6 +1413,147 @@ input:checked + .slider:before {
     100% {
         transform: translate(-60%, -50%) rotateY(360deg);
     }
+}
+
+/* NOTIFICAÇÕES */
+.notification-container {
+    position: absolute;
+    top: 50px;
+    left: 20px;
+    width: 350px;
+    max-width: 90%;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    z-index: 999;
+    pointer-events: none;
+}
+
+.notification {
+    position: relative;
+    padding: 15px;
+    border-radius: 12px;
+    background: rgba(0, 0, 0, 0.264);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    backdrop-filter: transparent(8px);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+    color: white;
+    font-family: 'Segoe UI', sans-serif;
+    opacity: 0;
+    transform: translateX(100%);
+    transition: all 0.3s ease;
+    pointer-events: auto;
+    overflow: hidden;
+}
+
+.notification.show {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+.notification.hide {
+    opacity: 0;
+    transform: translateY(-20px);
+}
+
+.notification::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 5px;
+    height: 100%;
+    background: linear-gradient(to bottom, #4CAF50, #2196F3);
+}
+
+.notification-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+    font-weight: 600;
+    font-size: 1rem;
+}
+
+.notification-message {
+    font-size: 0.9rem;
+    line-height: 1.4;
+    opacity: 0.9;
+}
+
+.notification-progress {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 3px;
+    width: 100%;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.notification-progress-bar {
+    height: 100%;
+    background: linear-gradient(to right, #4CAF50, #2196F3);
+    transition: width 0.1s linear;
+}
+
+/* Tipos de notificação */
+.notification.success::before {
+    background: linear-gradient(to bottom, #4CAF50, #2E7D32);
+}
+
+.notification.error::before {
+    background: linear-gradient(to bottom, #F44336, #C62828);
+}
+
+.notification.warning::before {
+    background: linear-gradient(to bottom, #FFC107, #FF8F00);
+}
+
+.notification.info::before {
+    background: linear-gradient(to bottom, #2196F3, #1565C0);
+}
+
+.notification.success .notification-progress-bar {
+    background: linear-gradient(to right, #4CAF50, #2E7D32);
+}
+
+.notification.error .notification-progress-bar {
+    background: linear-gradient(to right, #F44336, #C62828);
+}
+
+.notification.warning .notification-progress-bar {
+    background: linear-gradient(to right, #FFC107, #FF8F00);
+}
+
+.notification.info .notification-progress-bar {
+    background: linear-gradient(to right, #2196F3, #1565C0);
+}
+
+/* Estilos para notificações de polícia */
+.notification.policia::before {
+    background: linear-gradient(to bottom, #2196F3, #0D47A1);
+}
+
+.notification.policia .notification-progress-bar {
+    background: linear-gradient(to right, #2196F3, #0D47A1);
+}
+
+/* Estilos para notificações de hospital */
+.notification.hospital::before {
+    background: linear-gradient(to bottom, #F44336, #B71C1C);
+}
+
+.notification.hospital .notification-progress-bar {
+    background: linear-gradient(to right, #F44336, #B71C1C);
+}
+
+/* Estilos para notificações de mecânica */
+.notification.mecanica::before {
+    background: linear-gradient(to bottom, #FF9800, #E65100);
+}
+
+.notification.mecanica .notification-progress-bar {
+    background: linear-gradient(to right, #FF9800, #E65100);
 }
 
 

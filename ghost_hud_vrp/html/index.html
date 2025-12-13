@@ -48,45 +48,61 @@
       </div>
     </div>
     
-    <div id="vehicle-hud" class="hidden">
-      <div id="gear-indicator">N</div>
-      <div class="vehicle-speedometer">
-        <div class="speed-display">
-          <span id="speed">0</span>
-          <span class="speed-unit">km/h</span>
-        </div>
-        <div class="rpm-container">
-          <div id="rpm-bar"></div>
-          <div class="rpm-markers">
-            <div class="rpm-marker"></div>
-            <div class="rpm-marker"></div>
-            <div class="rpm-marker"></div>
-            <div class="rpm-marker"></div>
-            <div class="rpm-marker"></div>
-          </div>
-          <div class="rpm-value">0 RPM</div>
-        </div>
-        <div class="fuel-display">
-          <i class="fas fa-gas-pump"></i>
-          <span id="fuel">100</span>
-          <span class="fuel-unit">%</span>
-        </div>
-      </div>
-      <div class="vehicle-status">
-        <div class="status-icon" id="engine-status">
-          <i class="fas fa-power-off"></i>
-          <span>Motor</span>
-        </div>
-        <div class="status-icon" id="seatbelt-status">
-          <i class="fas fa-user-shield"></i>
-          <span>Cinto</span>
-        </div>
-        <div class="status-icon" id="lock-status">
-          <i class="fas fa-lock"></i>
-          <span>Portas</span>
-        </div>
+<div id="vehicle-hud" class="hidden">
+  <div class="vehicle-circle">
+    <!-- Velocímetro -->
+    <div class="speedometer">
+      <div class="speed-value" id="speed">0</div>
+      <div class="speed-unit">km/h</div>
+    </div>
+    
+    <!-- Conta-giros estilo analógico -->
+    <div class="rpm-meter">
+      <div class="gear-indicator">
+    <span id="gear-value">1</span>
+</div>
+      <div class="rpm-needle"></div>
+      <div class="rpm-markers">
+        <div class="marker marker-0">0</div>
+        <div class="marker marker-1">1</div>
+        <div class="marker marker-2">2</div>
+        <div class="marker marker-3">3</div>
+        <div class="marker marker-4">4</div>
+        <!-- Marcadores extras para melhor visualização -->
+        <div class="marker marker-5">5</div>
+        <div class="marker marker-6">6</div>
+        <div class="marker marker-7">7</div>
+        <div class="marker marker-8">8</div>
       </div>
     </div>
+    
+    <!-- Estado do veículo -->
+    <div class="vehicle-status">
+      <div class="status-item engine-health">
+        <i class="fas fa-cog"></i>
+        <div class="status-bar" id="engine-health-bar"></div>
+      </div>
+      <div class="status-item body-health">
+        <i class="fas fa-car-side"></i>
+        <div class="status-bar" id="body-health-bar"></div>
+      </div>
+    <div class="status-item fuel">
+      <i class="fas fa-gas-pump"></i>
+      <div class="status-bar" id="fuel-bar"></div>
+    </div>
+    </div>
+    
+    <!-- Cinto e portas -->
+    <div class="vehicle-controls">
+      <div class="control-item" id="cinto-status">
+        <i class="fas fa-user-shield"></i>
+      </div>
+      <div class="control-item" id="lock-status">
+        <i class="fas fa-lock"></i>
+      </div>
+    </div>
+  </div>
+</div>
 
     <div id="status-hud">
       <div id="secondary-status-container">
@@ -95,7 +111,7 @@
           <span class="status-value" id="armor-value">100</span>
         </div>
         
-        <div class="status-item" id="hunger">
+        <!-- <div class="status-item" id="hunger">
           <i class="fas fa-hamburger"></i>
           <span class="status-value" id="hunger-value">100</span>
         </div>
@@ -103,17 +119,17 @@
         <div class="status-item" id="thirst">
           <i class="fas fa-tint"></i>
           <span class="status-value" id="thirst-value">100</span>
-        </div>
+        </div> -->
         
         <div class="status-item" id="stamina">
           <i class="fas fa-running"></i>
           <span class="status-value" id="stamina-value">100</span>
         </div>
         
-        <div class="status-item" id="stress">
+        <!-- <div class="status-item" id="stress">
           <i class="fas fa-brain"></i>
           <span class="status-value" id="stress-value">0</span>
-        </div>
+        </div> -->
         
         <div class="status-item" id="voice">
           <i class="fas fa-microphone"></i>
@@ -147,5 +163,6 @@
         </div>
     </div>
   </div>
+  <div id="notification-container" class="notification-container"></div>  
 </body>
 </html>
