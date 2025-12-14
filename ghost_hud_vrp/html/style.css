@@ -1719,32 +1719,37 @@ html, body {
     cursor: pointer;
 }
 
-/* --- RODA DE PROGRESSÃO (Adicionar ao final) --- */
+/* --- RODA DE PROGRESSÃO (ESTILO MANGUEIRA) --- */
 #progress-container {
     position: absolute;
-    top: 50%;
+    bottom: 5%; /* Ajuste a altura aqui */
     left: 50%;
-    transform: translate(-50%, -50%);
+    transform: translateX(-50%); /* Centraliza */
     width: 120px;
     height: 120px;
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 999;
-    pointer-events: none; /* Permite clicar através dele */
+    z-index: 10000; /* Garante que fique acima de tudo */
+    pointer-events: none;
+}
+
+svg.progress-ring {
+    transform: rotate(-90deg); /* Começa do topo (12h) */
 }
 
 .progress-ring__circle-bg {
-    transform: rotate(-90deg);
-    transform-origin: 50% 50%;
+    /* Fundo estático */
 }
 
 .progress-ring__circle {
-    stroke-dasharray: 314; /* Circunferência: 2 * PI * 50 */
-    stroke-dashoffset: 314; /* Começa vazio */
-    transform: rotate(-90deg); /* Começa do topo */
-    transform-origin: 50% 50%;
-    transition: stroke-dashoffset linear; /* Animação suave controlada pelo JS */
+    /* Circunferência 2 * PI * 45 ≈ 283 */
+    stroke-dasharray: 283; 
+    stroke-dashoffset: 283; /* Começa vazio */
+    stroke-linecap: round; /* Ponta arredondada */
+    
+    /* A transição será injetada pelo JS, mas deixamos um padrão aqui */
+    transition: stroke-dashoffset linear; 
 }
 
 #progress-percent {
@@ -1754,4 +1759,5 @@ html, body {
     font-weight: bold;
     color: white;
     text-shadow: 0 0 10px rgba(0,0,0,0.8);
+    z-index: 10001;
 }

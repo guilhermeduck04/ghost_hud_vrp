@@ -4,6 +4,10 @@ let isEditMode = false;
 let draggedElement = null;
 let savedPositions = {};
 
+// Variáveis de Controle da Barra de Progresso
+let progressInterval = null;
+let hideTimeout = null; // NOVA VARIÁVEL IMPORTANTE
+
 // =============================================
 // SISTEMA DE VOZ E STATUS
 // =============================================
@@ -34,12 +38,19 @@ function updateVoiceDisplay() {
 }
 
 // =============================================
-// NOTIFICAÇÕES
+// SISTEMA DE NOTIFICAÇÃO (TRAVA DE SEGURANÇA)
 // =============================================
 function showNotification(title, message, type = 'info', duration) {
     let finalDuration = duration;
-    if (!finalDuration) finalDuration = 3000;
-    else if (finalDuration < 1000) finalDuration *= 1000;
+    
+    // Segurança: Padrão 3000ms se vier inválido
+    if (!finalDuration || isNaN(finalDuration)) finalDuration = 3000;
+    
+    // Se vier em segundos (menor que 100), converte para ms
+    if (finalDuration < 100) finalDuration *= 1000;
+    
+    // Trava máxima: Nunca ficar mais de 10s (evita notify infinita)
+    if (finalDuration > 10000) finalDuration = 10000;
 
     const notification = { title, message, type: type.toLowerCase(), duration: finalDuration };
     notificationQueue.push(notification);
@@ -47,13 +58,13 @@ function showNotification(title, message, type = 'info', duration) {
 }
 
 function processNotificationQueue() {
-    const MAX_SIMULTANEOUS = 5;
     const container = document.getElementById('notification-container');
     if (!container) return;
 
-    let active = container.querySelectorAll('.notification').length;
+    const active = container.querySelectorAll('.notification').length;
+    if (active >= 5) return;
 
-    while (notificationQueue.length > 0 && active < MAX_SIMULTANEOUS) {
+    if (notificationQueue.length > 0) {
         const { title, message, type, duration } = notificationQueue.shift();
 
         const notificationEl = document.createElement('div');
@@ -70,7 +81,6 @@ function processNotificationQueue() {
         `;
 
         container.appendChild(notificationEl);
-        active++;
 
         void notificationEl.offsetWidth;
         notificationEl.classList.add('show');
@@ -83,7 +93,10 @@ function processNotificationQueue() {
         setTimeout(() => {
             notificationEl.classList.remove('show');
             notificationEl.classList.add('hide');
-            setTimeout(() => { notificationEl.remove(); }, 300);
+            setTimeout(() => { 
+                notificationEl.remove(); 
+                processNotificationQueue(); 
+            }, 300);
         }, duration);
     }
 }
@@ -102,57 +115,68 @@ function getNotificationIcon(type) {
 }
 
 // =============================================
-// PROGRESS BAR CIRCULAR (NOVO)
+// RODA DE PROGRESSO (CORRIGIDO BUG DE SPAM)
 // =============================================
-let progressInterval = null;
-
 function startProgress(duration) {
     const container = document.getElementById('progress-container');
     const circle = document.querySelector('.progress-ring__circle');
     const text = document.getElementById('progress-percent');
     
-    // Mostra o container
+    if (!container || !circle) return;
+
+    // 1. Cancela qualquer ordem de esconder anterior (CORREÇÃO DO BUG)
+    if (hideTimeout) {
+        clearTimeout(hideTimeout);
+        hideTimeout = null;
+    }
+
+    // 2. Mostra o container
     container.classList.remove('hidden');
     
-    // Circunferência = 2 * PI * r (r=50) -> 314
-    const circumference = 314;
+    // 3. Reseta o estado visual
+    const circumference = 283; // 2 * PI * 45
     
-    // Reseta estado inicial (vazio)
-    circle.style.transition = 'none'; // Tira animação para resetar
-    circle.style.strokeDashoffset = circumference;
+    circle.style.transition = 'none'; // Sem animação no reset
+    circle.style.strokeDasharray = `${circumference} ${circumference}`;
+    circle.style.strokeDashoffset = circumference; // Vazio
     text.textContent = '0%';
     
-    // Força reflow
-    void circle.offsetWidth;
+    // 4. Força o navegador a aplicar o reset (Reflow)
+    void circle.offsetWidth; 
     
-    // Inicia animação
-    // Usamos transition CSS para a barra preencher suavemente
-    // Mas precisamos atualizar o texto (%) via JS
+    // 5. Inicia a nova animação
+    circle.style.transition = `stroke-dashoffset ${duration}ms linear`;
     
-    circle.style.transition = `strokeDashoffset ${duration}ms linear`;
-    circle.style.strokeDashoffset = '0'; // Vai para cheio (0 offset)
-    
+    // Delay minúsculo para garantir que a transição pegue
+    setTimeout(() => {
+        circle.style.strokeDashoffset = '0'; // Enche
+    }, 10);
+
+    // 6. Loop de atualização da porcentagem
     let startTime = Date.now();
-    
-    if(progressInterval) clearInterval(progressInterval);
+    if (progressInterval) clearInterval(progressInterval);
     
     progressInterval = setInterval(() => {
         let elapsed = Date.now() - startTime;
-        let progress = Math.min(elapsed / duration, 1);
+        let progress = elapsed / duration;
+        
+        if (progress > 1) progress = 1;
         
         text.textContent = Math.floor(progress * 100) + '%';
         
         if (progress >= 1) {
             clearInterval(progressInterval);
-            setTimeout(() => {
+            // Agenda para esconder e guarda o ID
+            hideTimeout = setTimeout(() => {
                 container.classList.add('hidden');
-            }, 200);
+                hideTimeout = null;
+            }, 300); // 300ms de delay para sumir
         }
-    }, 50); // Atualiza texto a cada 50ms
+    }, 30);
 }
 
 // =============================================
-// UPDATES GERAIS
+// ATUALIZAÇÕES GERAIS
 // =============================================
 function setHealthBar(percent) {
     const healthBar = document.getElementById('health-bar-progress');
@@ -211,7 +235,7 @@ function updateVehicleHud(data) {
 }
 
 // =============================================
-// DRAG & DROP
+// DRAG & DROP E LAYOUT
 // =============================================
 function enableEditMode() {
     isEditMode = true;
@@ -350,7 +374,7 @@ function resetLayout() {
 }
 
 // =============================================
-// LISTENERS & MESSAGES
+// LISTENERS & MENSAGENS
 // =============================================
 window.addEventListener('load', () => {
     makeDraggable();
@@ -390,7 +414,6 @@ window.addEventListener('message', (event) => {
         }
     }
 
-    // LISTENER DO PROGRESSO (NOVO)
     if (data.action === "progress") {
         startProgress(data.duration);
     }

@@ -1,4 +1,3 @@
--- Declaração de funções globais para evitar avisos de lint
 local _PlayerId = PlayerId
 local _GetPlayerServerId = GetPlayerServerId
 local _NetworkIsPlayerTalking = NetworkIsPlayerTalking
@@ -13,23 +12,21 @@ Citizen.CreateThread(function()
         Citizen.Wait(1000)
     end
 end)
+
 local emprego = "Desempregado"
 local player_user_id = 0
-
--- Variáveis locais
 local isPaused = false 
 local isMenuOpen = false 
 local streetName = ""
 local configOpen = false
 local cintoSeguranca = false
 local minimapEnabled = true 
--- Guarda a configuração atual para não perder ao fechar o menu
 local CurrentConfig = {} 
 
 Config = Config or {}
 
 -- =============================================
--- SISTEMA DE VOZ (PMA-VOICE)
+-- SISTEMA DE VOZ
 -- =============================================
 local voiceLevels = {
     whisper = { distance = 3.0, label = "Sussurro" },
@@ -39,7 +36,6 @@ local voiceLevels = {
 local currentVoiceLevel = "normal"
 local isTalking = false
 
--- Listener para PMA-Voice (Sincroniza Sussurro/Normal/Gritar)
 RegisterNetEvent('pma-voice:setTalkingMode')
 AddEventHandler('pma-voice:setTalkingMode', function(mode)
     local modes = { [1] = "whisper", [2] = "normal", [3] = "shout" }
@@ -64,14 +60,11 @@ function updateVoiceLogic()
 end
 
 -- =============================================
--- RÁDIO (CORRIGIDO)
+-- RÁDIO
 -- =============================================
 local lastRadioFreq = 0
 function updateRadioLogic()
-    -- CORREÇÃO: Usa LocalPlayer.state em vez de export que não existe
-    local currentFreq = LocalPlayer.state.radioChannel or 0
-    
-    -- Se retornar nil ou false, assume 0
+    local currentFreq = LocalPlayer.state.radioChannel
     if not currentFreq then currentFreq = 0 end
 
     if currentFreq ~= lastRadioFreq then
@@ -126,7 +119,6 @@ function updatePlayerStatus()
     local armor = GetPedArmour(playerPed)
     local stamina = 100 - GetPlayerSprintStaminaRemaining(PlayerId())
     
-    local user_id = player_user_id or 0
     TriggerServerEvent('vrp_hud:updatePlayerData')
 
     if rawHealth > 100 then
@@ -150,26 +142,37 @@ function updatePlayerStatus()
         isTalking = isTalking,
         voiceLevel = currentVoiceLevel,
         job = emprego,
-        user_id = user_id or 0,
+        user_id = player_user_id or 0,
         streetName = streetName or ""
     })
 end
 
--- Export de Notificação (Compatível com JS)
+-- =============================================
+-- NOTIFICAÇÕES (CORREÇÃO DE TEMPO)
+-- =============================================
 function SendNotification(title, message, type, duration)
-    -- Mapeia os tipos do VRP (PT-BR) para os tipos do CSS (EN)
     local jsType = "info"
     if type == "sucesso" then jsType = "success"
     elseif type == "negado" or type == "erro" then jsType = "error"
     elseif type == "aviso" then jsType = "warning"
-    else jsType = type end 
+    elseif type == "policia" or type == "hospital" or type == "mecanica" then jsType = type 
+    end
+
+    -- CORREÇÃO CRÍTICA: Detecta se é ms ou segundos
+    local dur = 3000
+    if duration then
+        local t = tonumber(duration)
+        if t then
+            if t > 100 then dur = t else dur = t * 1000 end
+        end
+    end
 
     SendNUIMessage({
-        action = "showNotification", -- JS espera isso
+        action = "showNotification",
         title = title,
         message = message,
         type = jsType,
-        duration = duration or 3000
+        duration = dur
     })
 end
 exports('SendNotification', SendNotification)
@@ -244,9 +247,6 @@ function getGameTime()
     return { hours = GetClockHours(), minutes = GetClockMinutes() }
 end
 
--- =============================================
--- LAYOUT
--- =============================================
 function LoadUserLayout()
     local layout = GetResourceKvpString("ghost_hud_layout")
     if layout and layout ~= "" then
@@ -285,7 +285,6 @@ Citizen.CreateThread(function()
 
         if not isPaused and not isMenuOpen then
             updatePlayerStatus()
-            updateStreetName()
             updateVehicleHud()
             updateWeaponHud()
             
@@ -302,16 +301,14 @@ Citizen.CreateThread(function()
     end
 end)
 
-
 -- =============================================
--- EVENTOS DE CONFIGURAÇÃO (PERSISTENTES)
+-- EVENTOS
 -- =============================================
 
 RegisterNetEvent('vrp_hud:updateHUD')
 AddEventHandler('vrp_hud:updateHUD', function(newConfig)
-    CurrentConfig = newConfig -- Salva
+    CurrentConfig = newConfig 
     minimapEnabled = newConfig.minimapEnabled
-    
     if not isMenuOpen and not isPaused then
         DisplayRadar(newConfig.hudEnabled and newConfig.minimapEnabled)
     end
@@ -324,49 +321,52 @@ end)
 RegisterNetEvent('vrp_hud:openConfig')
 AddEventHandler('vrp_hud:openConfig', function(configData)
     configOpen = true
-    -- Manda a config atualizada
     local configToSend = (next(CurrentConfig) ~= nil) and CurrentConfig or configData
-    
     SendNUIMessage({ action = "openConfig", config = configToSend })
     SetNuiFocus(true, true)
 end)
 
--- EVENTO NOTIFY (CORRIGIDO PARA O JS)
 RegisterNetEvent("Notify")
 AddEventHandler("Notify", function(type, message, time)
-    local typeMap = { 
-        ["negado"] = "error", 
-        ["aviso"] = "warning", 
-        ["sucesso"] = "success",
-        ["policia"] = "policia",
-        ["hospital"] = "hospital",
-        ["mecanica"] = "mecanica"
-    }
-    local jsType = typeMap[type] or "info"
+    local title = "INFORMAÇÃO"
+    if type == "negado" then title = "NEGADO"
+    elseif type == "aviso" then title = "AVISO"
+    elseif type == "sucesso" then title = "SUCESSO"
+    elseif type == "policia" then title = "POLÍCIA"
+    end
     
-    local titleMap = {
-        ["negado"] = "NEGADO",
-        ["aviso"] = "AVISO",
-        ["sucesso"] = "SUCESSO",
-        ["policia"] = "POLÍCIA",
-        ["hospital"] = "HOSPITAL",
-        ["mecanica"] = "MECÂNICA"
-    }
-    local title = titleMap[type] or "INFORMAÇÃO"
+    SendNotification(title, message, type, time)
+end)
 
-    SendNUIMessage({
-        action = "showNotification", -- O JS espera 'showNotification'
-        title = title,
-        message = message,
-        type = jsType,
-        duration = time and (time * 1000) or 3000
-    })
+-- Eventos de Progresso (Tratados)
+local function handleProgress(time, text)
+    local dur = 3000
+    if time then
+        local t = tonumber(time)
+        if t > 100 then dur = t else dur = t * 1000 end
+    end
+    SendNUIMessage({ action = "progress", duration = dur })
+end
+
+RegisterNetEvent("progress")
+AddEventHandler("progress", handleProgress)
+
+RegisterNetEvent("Progress")
+AddEventHandler("Progress", handleProgress)
+
+RegisterNetEvent('vrp_hud:startProgress')
+AddEventHandler('vrp_hud:startProgress', function(duration)
+    handleProgress(duration, "")
+end)
+
+exports('startProgress', function(duration)
+    TriggerEvent('vrp_hud:startProgress', duration)
 end)
 
 RegisterNUICallback('closeConfig', function(data, cb)
     configOpen = false
     SetNuiFocus(false, false)
-    cb({})
+    cb('ok')
 end)
 
 RegisterNUICallback('saveConfig', function(data, cb)
@@ -374,10 +374,10 @@ RegisterNUICallback('saveConfig', function(data, cb)
         if data.config.minimapEnabled ~= nil then
             minimapEnabled = data.config.minimapEnabled
         end
-        CurrentConfig = data.config -- Atualiza config local
+        CurrentConfig = data.config
     end
     TriggerServerEvent('vrp_hud:saveConfig', data.config)
-    cb({})
+    cb('ok')
 end)
 
 RegisterNUICallback('nuiReady', function(data, cb)
@@ -408,16 +408,14 @@ RegisterNUICallback('updateMinimap', function(data, cb)
         minimapEnabled = data.show
         DisplayRadar(data.show)
     end
-    cb({})
+    cb('ok')
 end)
 
 RegisterNUICallback('getGameTime', function(_, cb)
     cb({ hours = GetClockHours(), minutes = GetClockMinutes() })
 end)
 
--- =============================================
--- CINTO
--- =============================================
+-- Cinto
 local exNoCarro = false
 Citizen.CreateThread(function()
     while true do
@@ -433,6 +431,12 @@ Citizen.CreateThread(function()
                 cintoSeguranca = not cintoSeguranca
                 TriggerEvent("vrp_sound:source", cintoSeguranca and "belt" or "unbelt", 0.1)
                 SetPedConfigFlag(ped, 32, not cintoSeguranca)
+                
+                if cintoSeguranca then
+                    SendNotification("CINTO", "Cinto Colocado", "sucesso", 2000)
+                else
+                    SendNotification("CINTO", "Cinto Retirado", "aviso", 2000)
+                end
             end
         elseif exNoCarro then
             exNoCarro = false
@@ -461,23 +465,5 @@ RegisterCommand("hudconfig", function()
 end)
 
 RegisterCommand('testenotify', function()
-    TriggerEvent("Notify", "sucesso", "Notificação Funcionando!", 5)
-    Wait(1000)
-    TriggerEvent("Notify", "negado", "Erro Funcionando!", 5)
+    TriggerEvent("Notify", "sucesso", "Teste OK!", 5)
 end, false)
-
--- =============================================
--- EXPORT BARRA DE PROGRESSO
--- =============================================
-RegisterNetEvent('vrp_hud:startProgress')
-AddEventHandler('vrp_hud:startProgress', function(duration)
-    SendNUIMessage({
-        action = "progress",
-        duration = duration
-    })
-end)
-
--- Para usar em outros scripts: exports['ghost_hud_vrp']:startProgress(5000) -- 5 segundos
-exports('startProgress', function(duration)
-    TriggerEvent('vrp_hud:startProgress', duration)
-end)
