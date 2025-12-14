@@ -10,7 +10,7 @@
   --text-color: #ffffff;
   --text-shadow: 0 0 8px rgba(0, 0, 0, 0.5);
   --clock-bg: rgba(0, 0, 0, 0.264);
-  --clock-transparent: 8px;
+  --clock-transparent: 2px;
 }
 
 * {
@@ -155,19 +155,22 @@ html, body {
 #clock {
     display: flex;
     align-items: center;
+    justify-content: center; /* Centraliza o conteudo na caixa */
     gap: 10px;
     font-size: 1.2rem;
     padding: 12px 20px;
     border-radius: 20px;
     position: absolute;
     bottom: 220px;
-    left: 175px;
+    left: 165px;
     transform: translateX(-50%);
     background: rgba(0, 0, 0, 0.264);
     border: 1px solid rgba(255, 255, 255, 0.1);
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
-    backdrop-filter: transparent(8px);
-    min-width: 200px;
+    backdrop-filter: transparent(2px);
+    
+    /* MUDANÇA AQUI: De min-width para width fixo */
+    width: 270px; 
     z-index: 10;
 }
 
@@ -176,6 +179,8 @@ html, body {
     flex-direction: column;
     align-items: center;
     gap: 2px;
+    width: 100%;
+    overflow: hidden; 
 }
 
 #time {
@@ -194,6 +199,12 @@ html, body {
     font-family: 'Audiowide', 'Segoe UI', sans-serif;
     letter-spacing: 0.5px;
     text-transform: uppercase;
+
+    width: 100%;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 /* Mantenha os estilos noturnos existentes */
@@ -294,7 +305,7 @@ html, body {
     padding: 15px;
     /* border: 1px solid rgba(255, 255, 255, 0.1); */
     /* box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3); */
-    backdrop-filter: transparent(8px);
+    backdrop-filter: transparent(2px);
 }
 
 .hud-item {
@@ -404,7 +415,7 @@ html, body {
     background: rgba(0, 0, 0, 0.264);
     padding: 12px 25px;
     border-radius: 25px;
-    backdrop-filter: transparent(8px);
+    backdrop-filter: transparent(2px);
     border: 1px solid rgba(255, 255, 255, 0.1);
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
 }
@@ -606,7 +617,7 @@ html, body {
     pointer-events: all;
     z-index: 1000;
     border: 1px solid rgba(255, 255, 255, 0.1);
-    backdrop-filter: transparent(10px); /* Usando blur em vez de transparent */
+    backdrop-filter: transparent(10px); /* Usando transparent em vez de transparent */
     max-height: 70vh;
     overflow-y: auto;
 }
@@ -1435,7 +1446,7 @@ input:checked + .slider:before {
     border-radius: 12px;
     background: rgba(0, 0, 0, 0.264);
     border: 1px solid rgba(255, 255, 255, 0.1);
-    backdrop-filter: transparent(8px);
+    backdrop-filter: transparent(2px);
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
     color: white;
     font-family: 'Segoe UI', sans-serif;
@@ -1620,6 +1631,8 @@ html, body {
     pointer-events: none;
 }
 
+
+/* Quando em modo edição, o container aceita cliques */
 .edit-mode {
     background: rgba(0, 0, 0, 0.4); /* Fundo escuro para focar na edição */
     pointer-events: all !important;
@@ -1704,4 +1717,41 @@ html, body {
     color: white;
     font-weight: bold;
     cursor: pointer;
+}
+
+/* --- RODA DE PROGRESSÃO (Adicionar ao final) --- */
+#progress-container {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 120px;
+    height: 120px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 999;
+    pointer-events: none; /* Permite clicar através dele */
+}
+
+.progress-ring__circle-bg {
+    transform: rotate(-90deg);
+    transform-origin: 50% 50%;
+}
+
+.progress-ring__circle {
+    stroke-dasharray: 314; /* Circunferência: 2 * PI * 50 */
+    stroke-dashoffset: 314; /* Começa vazio */
+    transform: rotate(-90deg); /* Começa do topo */
+    transform-origin: 50% 50%;
+    transition: stroke-dashoffset linear; /* Animação suave controlada pelo JS */
+}
+
+#progress-percent {
+    position: absolute;
+    font-family: 'Audiowide', sans-serif;
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: white;
+    text-shadow: 0 0 10px rgba(0,0,0,0.8);
 }

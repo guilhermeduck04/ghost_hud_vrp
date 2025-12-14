@@ -11,9 +11,9 @@ Config.EnableWeaponHud = true -- Habilitar HUD de arma
 Config.Status = {
     showHealth = true,
     showArmor = true,
-    showHunger = true,
-    showThirst = true,
-    showStress = true,
+    showHunger = false,
+    showThirst = false,
+    showStress = false,
     showStamina = true,
     showOxygen = true,
 

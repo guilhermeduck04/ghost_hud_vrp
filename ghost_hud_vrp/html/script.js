@@ -30,13 +30,11 @@ function updateVoiceDisplay() {
     if (voiceModeEl) {
         voiceModeEl.textContent = voiceLevels[currentVoiceLevel]?.label || "Normal";
     }
-    
-    // Atualiza preenchimento visual
     updateStatusFill('voice', isTalking ? 100 : 30); 
 }
 
 // =============================================
-// SISTEMA DE NOTIFICAÇÃO
+// NOTIFICAÇÕES
 // =============================================
 function showNotification(title, message, type = 'info', duration) {
     let finalDuration = duration;
@@ -74,26 +72,18 @@ function processNotificationQueue() {
         container.appendChild(notificationEl);
         active++;
 
-        // Força reflow para animação
         void notificationEl.offsetWidth;
         notificationEl.classList.add('show');
 
-        // Barra de progresso
         const progressBar = notificationEl.querySelector('.notification-progress-bar');
         progressBar.style.transition = `width ${duration}ms linear`;
         
-        // Timeout pequeno para garantir que a transição CSS pegue
-        setTimeout(() => {
-            progressBar.style.width = '0%';
-        }, 50);
+        setTimeout(() => { progressBar.style.width = '0%'; }, 50);
 
-        // Remover
         setTimeout(() => {
             notificationEl.classList.remove('show');
             notificationEl.classList.add('hide');
-            setTimeout(() => {
-                notificationEl.remove();
-            }, 300);
+            setTimeout(() => { notificationEl.remove(); }, 300);
         }, duration);
     }
 }
@@ -112,22 +102,68 @@ function getNotificationIcon(type) {
 }
 
 // =============================================
-// ATUALIZAÇÃO DE DADOS (STATUS/VEÍCULO)
+// PROGRESS BAR CIRCULAR (NOVO)
+// =============================================
+let progressInterval = null;
+
+function startProgress(duration) {
+    const container = document.getElementById('progress-container');
+    const circle = document.querySelector('.progress-ring__circle');
+    const text = document.getElementById('progress-percent');
+    
+    // Mostra o container
+    container.classList.remove('hidden');
+    
+    // Circunferência = 2 * PI * r (r=50) -> 314
+    const circumference = 314;
+    
+    // Reseta estado inicial (vazio)
+    circle.style.transition = 'none'; // Tira animação para resetar
+    circle.style.strokeDashoffset = circumference;
+    text.textContent = '0%';
+    
+    // Força reflow
+    void circle.offsetWidth;
+    
+    // Inicia animação
+    // Usamos transition CSS para a barra preencher suavemente
+    // Mas precisamos atualizar o texto (%) via JS
+    
+    circle.style.transition = `strokeDashoffset ${duration}ms linear`;
+    circle.style.strokeDashoffset = '0'; // Vai para cheio (0 offset)
+    
+    let startTime = Date.now();
+    
+    if(progressInterval) clearInterval(progressInterval);
+    
+    progressInterval = setInterval(() => {
+        let elapsed = Date.now() - startTime;
+        let progress = Math.min(elapsed / duration, 1);
+        
+        text.textContent = Math.floor(progress * 100) + '%';
+        
+        if (progress >= 1) {
+            clearInterval(progressInterval);
+            setTimeout(() => {
+                container.classList.add('hidden');
+            }, 200);
+        }
+    }, 50); // Atualiza texto a cada 50ms
+}
+
+// =============================================
+// UPDATES GERAIS
 // =============================================
 function setHealthBar(percent) {
     const healthBar = document.getElementById('health-bar-progress');
     const healthValue = document.getElementById('health-value');
-    
     if (healthBar) {
         healthBar.style.width = `${percent}%`;
         if (percent <= 20) healthBar.style.background = '#ff3e3e';
         else if (percent <= 50) healthBar.style.background = '#ffaa3e';
         else healthBar.style.background = 'linear-gradient(90deg, #ffffff, #f0f0f0)';
     }
-    
-    if (healthValue) {
-        healthValue.textContent = Math.round(percent);
-    }
+    if (healthValue) healthValue.textContent = Math.round(percent);
 }
 
 function updateStatusValue(elementId, value) {
@@ -146,25 +182,19 @@ function updateStatusFill(elementId, percent) {
 
 function updateVehicleHud(data) {
     const el = document.getElementById("vehicle-hud");
-    
-    // Se estiver em modo edição, sempre mostra para poder arrastar
     if (data.show || isEditMode) {
         el.classList.remove("hidden");
-        
         document.getElementById("speed").textContent = data.speed || 0;
         
-        // RPM
         const rpmValue = (data.rpm || 0) * 9;
         const rpmAngle = -180 + (rpmValue * 33);
         const needle = document.querySelector(".rpm-needle");
         if(needle) needle.style.transform = `translate(-50%, -100%) rotate(${rpmAngle}deg)`;
         
-        // Status do Veículo
         const fuelBar = document.getElementById("fuel-bar");
         if (fuelBar) fuelBar.style.setProperty('--fuel-level', `${Math.round(data.fuel || 0)}%`);
 
         if (data.gear) document.getElementById("gear-value").textContent = data.gear;
-        
         document.getElementById("engine-health-bar").style.setProperty('--engine-health', `${data.engineHealth || 100}%`);
         document.getElementById("body-health-bar").style.setProperty('--body-health', `${data.bodyHealth || 100}%`);
         
@@ -181,23 +211,21 @@ function updateVehicleHud(data) {
 }
 
 // =============================================
-// DRAG & DROP E POSICIONAMENTO
+// DRAG & DROP
 // =============================================
-
 function enableEditMode() {
     isEditMode = true;
     document.getElementById('hud-container').classList.add('edit-mode');
     document.getElementById('edit-controls').classList.remove('hidden');
-    document.getElementById('config-panel').classList.add('hidden'); // Fecha config
+    document.getElementById('config-panel').classList.add('hidden'); 
     
-    // Força mostrar elementos ocultos para poder editar
     document.getElementById('vehicle-hud').classList.remove('hidden');
     document.getElementById('weapon-hud').classList.remove('hidden');
     document.getElementById('radio-hud').classList.remove('hidden');
 
-    // Notifica client para dar foco total
     fetch(`https://${GetParentResourceName()}/setEditMode`, {
         method: 'POST',
+        headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({ enabled: true })
     });
 }
@@ -207,28 +235,24 @@ function disableEditMode(save) {
     document.getElementById('hud-container').classList.remove('edit-mode');
     document.getElementById('edit-controls').classList.add('hidden');
     
-    // Volta a esconder se necessário (o loop do client vai corrigir no proximo tick, mas forçamos visualmente)
-    // O client enviará updates logo em seguida corrigindo a visibilidade real
-
     if (save) {
         saveLayout();
     } else {
-        loadLayout(savedPositions); // Reverte
+        const backup = localStorage.getItem('ghost_hud_layout_backup');
+        if (backup) loadLayout(JSON.parse(backup));
     }
 
-    // Tira foco
     fetch(`https://${GetParentResourceName()}/setEditMode`, {
         method: 'POST',
+        headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({ enabled: false })
     });
 }
 
 function makeDraggable() {
     const draggables = document.querySelectorAll('.hud-draggable');
-    
     draggables.forEach(elmnt => {
         let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
-        
         elmnt.onmousedown = dragMouseDown;
 
         function dragMouseDown(e) {
@@ -244,17 +268,13 @@ function makeDraggable() {
         function elementDrag(e) {
             e = e || window.event;
             e.preventDefault();
-            // Calcula nova posição
             pos1 = pos3 - e.clientX;
             pos2 = pos4 - e.clientY;
             pos3 = e.clientX;
             pos4 = e.clientY;
             
-            // Define top/left em pixels
             let newTop = (elmnt.offsetTop - pos2);
             let newLeft = (elmnt.offsetLeft - pos1);
-            
-            // Converte para porcentagem para ser responsivo
             let percentTop = (newTop / window.innerHeight) * 100;
             let percentLeft = (newLeft / window.innerWidth) * 100;
 
@@ -262,7 +282,7 @@ function makeDraggable() {
             elmnt.style.left = percentLeft + "%";
             elmnt.style.bottom = "auto";
             elmnt.style.right = "auto";
-            elmnt.style.transform = "none"; // Remove transforms que centralizam
+            elmnt.style.transform = "none"; 
         }
 
         function closeDragElement() {
@@ -280,43 +300,45 @@ function saveLayout() {
             top: el.style.top,
             left: el.style.left,
             right: el.style.right,
-            bottom: el.style.bottom
+            bottom: el.style.bottom,
+            transform: el.style.transform 
         };
     });
-    
-    // Atualiza cache local
     savedPositions = layout;
-
-    // Envia para client salvar KVPs
     fetch(`https://${GetParentResourceName()}/saveLayout`, {
         method: 'POST',
+        headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({ layout: layout })
     });
 }
 
 function loadLayout(layout) {
     if (!layout) return;
-    savedPositions = layout; // Guarda backup
+    localStorage.setItem('ghost_hud_layout_backup', JSON.stringify(layout)); 
 
     Object.keys(layout).forEach(key => {
         const el = document.querySelector(`.hud-draggable[data-id="${key}"]`);
         if (el && layout[key]) {
-            el.style.top = layout[key].top || "auto";
-            el.style.left = layout[key].left || "auto";
-            el.style.right = layout[key].right || "auto";
-            el.style.bottom = layout[key].bottom || "auto";
+            if (layout[key].top) el.style.top = layout[key].top;
+            if (layout[key].left) el.style.left = layout[key].left;
+            if (layout[key].right) el.style.right = layout[key].right;
+            if (layout[key].bottom) el.style.bottom = layout[key].bottom;
             
-            // Se tiver posição salva, remove transform padrão de centralização se existir
-            if(layout[key].top || layout[key].left) {
+            if (layout[key].top && layout[key].top !== "auto" && layout[key].top !== "") {
                 el.style.transform = "none";
+            } else {
+                el.style.transform = ""; 
             }
         }
     });
 }
 
 function resetLayout() {
-    fetch(`https://${GetParentResourceName()}/resetLayout`, { method: 'POST', body: JSON.stringify({}) });
-    // Remove estilos inline para voltar ao CSS original
+    fetch(`https://${GetParentResourceName()}/resetLayout`, { 
+        method: 'POST', 
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({}) 
+    });
     document.querySelectorAll('.hud-draggable').forEach(el => {
         el.style.top = "";
         el.style.left = "";
@@ -328,21 +350,26 @@ function resetLayout() {
 }
 
 // =============================================
-// LISTENERS
+// LISTENERS & MESSAGES
 // =============================================
 window.addEventListener('load', () => {
     makeDraggable();
     
-    // Botões de controle de edição
-    document.getElementById('btn-save-edit').addEventListener('click', () => disableEditMode(true));
-    document.getElementById('btn-cancel-edit').addEventListener('click', () => disableEditMode(false));
+    const btnSave = document.getElementById('btn-save-edit');
+    if(btnSave) btnSave.addEventListener('click', () => disableEditMode(true));
     
-    // Botões dentro do config
-    document.getElementById('btn-edit-mode').addEventListener('click', enableEditMode);
-    document.getElementById('btn-reset-layout').addEventListener('click', resetLayout);
+    const btnCancel = document.getElementById('btn-cancel-edit');
+    if(btnCancel) btnCancel.addEventListener('click', () => disableEditMode(false));
+    
+    const btnEdit = document.getElementById('btn-edit-mode');
+    if(btnEdit) btnEdit.addEventListener('click', enableEditMode);
+    
+    const btnReset = document.getElementById('btn-reset-layout');
+    if(btnReset) btnReset.addEventListener('click', resetLayout);
 
     fetch(`https://${GetParentResourceName()}/nuiReady`, {
         method: 'POST',
+        headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({ message: 'Ready' })
     });
 });
@@ -350,19 +377,22 @@ window.addEventListener('load', () => {
 window.addEventListener('message', (event) => {
     const data = event.data;
 
-    // Toggle geral (ESC/Garagem)
     if (data.action === "toggleHUD") {
         const container = document.getElementById('hud-container');
         if (data.show) {
             container.style.display = 'block';
             container.style.opacity = '1';
         } else {
-            // Se estiver em modo edição, não esconde
             if (!isEditMode) {
                 container.style.opacity = '0';
                 setTimeout(() => { if(!isEditMode) container.style.display = 'none'; }, 200);
             }
         }
+    }
+
+    // LISTENER DO PROGRESSO (NOVO)
+    if (data.action === "progress") {
+        startProgress(data.duration);
     }
 
     if (data.action === "updateStatus") {
@@ -372,7 +402,7 @@ window.addEventListener('message', (event) => {
         updateStatusFill('thirst', data.thirst);
         updateStatusFill('stamina', data.stamina);
         updateStatusFill('stress', data.stress);
-        updateStatusFill('voice', 100); // Voz sempre cheia, muda a cor
+        updateStatusFill('voice', 100); 
         
         if (data.job) document.getElementById("job-name").textContent = data.job;
         if (data.user_id) document.getElementById("id-card-name").textContent = data.user_id;
@@ -392,15 +422,24 @@ window.addEventListener('message', (event) => {
 
     if (data.action === "updateWeapon") {
         const el = document.getElementById("weapon-hud");
-        // Só atualiza se não estiver editando (em edição ele é forçado visível)
         if(!isEditMode) el.classList.remove("hidden");
-        
         document.getElementById("ammo-clip").textContent = data.ammoClip;
         document.getElementById("ammo-inventory").textContent = data.ammoInventory;
     }
     
     if (data.action === "hideWeapon") {
         if(!isEditMode) document.getElementById("weapon-hud").classList.add("hidden");
+    }
+
+    if (data.action === "updateRadio") {
+        const radioEl = document.getElementById("radio-hud");
+        const freqEl = document.getElementById("radio-frequency");
+        if (data.freq && data.freq > 0) {
+            radioEl.classList.remove("hidden");
+            freqEl.textContent = data.freq + " MHz";
+        } else {
+            if (!isEditMode) radioEl.classList.add("hidden");
+        }
     }
 
     if (data.action === "updateStreet") {
@@ -422,7 +461,6 @@ window.addEventListener('message', (event) => {
         loadLayout(data.layout);
     }
     
-    // Atualização de configuração (Toggles)
     if (data.action === "updateHUD") {
         if (data.config) {
             const elements = {
@@ -438,11 +476,11 @@ window.addEventListener('message', (event) => {
                 'job': 'job',
                 'id': 'id',
                 'coupon': 'coupon',
-                'clock': 'clock'
+                'clock': 'clock',
+                'status': 'secondary-status-container', 
+                'radio': 'radio-hud'
             };
 
-            // Atualiza visibilidade baseada na config
-            // Nota: Se isEditMode for true, ignoramos isso para mostrar tudo
             if (!isEditMode) {
                 Object.entries(elements).forEach(([key, id]) => {
                     const el = document.getElementById(id);
@@ -452,7 +490,6 @@ window.addEventListener('message', (event) => {
                     }
                 });
                 
-                // Toggle Geral
                 if (data.config.hudEnabled !== undefined) {
                     const hud = document.getElementById('hud-container');
                     hud.style.display = data.config.hudEnabled ? 'block' : 'none';
