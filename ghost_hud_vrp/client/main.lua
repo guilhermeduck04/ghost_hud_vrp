@@ -1,6 +1,5 @@
 -- Declaração de funções globais para evitar avisos de lint
 local _PlayerId = PlayerId
-local _GetPlayerServerId = GetPlayerServerId
 local _NetworkIsPlayerTalking = NetworkIsPlayerTalking
 local _MumbleGetTalkerProximity = MumbleGetTalkerProximity
 
@@ -13,30 +12,11 @@ Citizen.CreateThread(function()
         Citizen.Wait(1000)
     end
 end)
+
 local emprego = "Desempregado"
 local player_user_id = 0
-
--- Funções seguras
-local function SafePlayerId()
-    return _PlayerId and _PlayerId() or 0
-end
-
-local function SafeGetPlayerServerId()
-    return _GetPlayerServerId and _GetPlayerServerId(PlayerId()) or 0
-end
-
-local function SafeNetworkIsPlayerTalking()
-    return _NetworkIsPlayerTalking and _NetworkIsPlayerTalking(PlayerId()) or false
-end
-
-local function SafeMumbleGetTalkerProximity()
-    return _MumbleGetTalkerProximity and _MumbleGetTalkerProximity() or 1.0
-end
-
-
--- Variáveis locais
-local isPaused = false
-local playerData = {}
+local isPaused = false -- Pausa manual (comando toggle)
+local isMenuOpen = false -- Pausa automática (ESC/Garagem)
 local streetName = ""
 local configOpen = false
 Config = Config or {}
@@ -54,8 +34,8 @@ local currentVoiceLevel = "normal"
 local isTalking = false
 
 function updateVoiceProximity()
-    local proximity = MumbleGetTalkerProximity()
-    local previousLevel = currentVoiceLevel -- Guarda o nível anterior
+    local proximity = _MumbleGetTalkerProximity and _MumbleGetTalkerProximity() or 2.0
+    local previousLevel = currentVoiceLevel
     
     if proximity <= voiceLevels.whisper.distance then
         currentVoiceLevel = "whisper"
@@ -65,9 +45,10 @@ function updateVoiceProximity()
         currentVoiceLevel = "shout"
     end
     
-    -- Só atualiza se realmente mudou ou se é a primeira vez
-    if previousLevel ~= currentVoiceLevel or isTalking ~= NetworkIsPlayerTalking(PlayerId()) then
-        isTalking = NetworkIsPlayerTalking(PlayerId())
+    local talkingNow = _NetworkIsPlayerTalking(PlayerId())
+    
+    if previousLevel ~= currentVoiceLevel or isTalking ~= talkingNow then
+        isTalking = talkingNow
         SendNUIMessage({
             action = "updateStatus",
             voiceLevel = currentVoiceLevel,
@@ -79,16 +60,17 @@ end
 -- =============================================
 -- MINIMAP
 -- =============================================
+local minimapEnabled = true
 local function ToggleMinimap(state)
-    SetMinimapComponentPosition('minimap', 'L', 'B', -0.0045, 0.002, 0.150, 0.188888)
-    SetMinimapComponentPosition('minimap_mask', 'L', 'B', 0.020, 0.030, 0.111, 0.159)
-    SetMinimapComponentPosition('minimap_blur', 'L', 'B', -0.03, 0.022, 0.266, 0.237)
-    SetRadarBigmapEnabled(false, false)
-    SetMinimapHideFow(true)
-
+    if state then
+        SetMinimapComponentPosition('minimap', 'L', 'B', -0.0045, 0.002, 0.150, 0.188888)
+        SetMinimapComponentPosition('minimap_mask', 'L', 'B', 0.020, 0.030, 0.111, 0.159)
+        SetMinimapComponentPosition('minimap_blur', 'L', 'B', -0.03, 0.022, 0.266, 0.237)
+        SetRadarBigmapEnabled(false, false)
+        SetMinimapHideFow(true)
+        SetRadarZoom(1100)
+    end
     DisplayRadar(state)
-    
-    SetRadarZoom(1100)
 end
 
 -- =============================================
@@ -123,42 +105,27 @@ function updatePlayerStatus()
     local armor = GetPedArmour(playerPed)
     local stamina = 100 - GetPlayerSprintStaminaRemaining(PlayerId())
     
-    -- Usa o user_id enviado pelo servidor (sincronizado)
     local user_id = player_user_id or 0
-
-    -- Solicita atualização do servidor (não depende do retorno imediato)
     TriggerServerEvent('vrp_hud:updatePlayerData')
 
-    local job = "Desempregado"
-    if vRP and vRP.getUserGroupByType and user_id and user_id ~= 0 then
-        job = vRP.getUserGroupByType(user_id, "job") or "Desempregado"
-        local org = vRP.getUserGroupByType(user_id, "org") or ""
-        if job == "Desempregado" and org ~= "" then
-            job = org
-        end
-    end
-
-    
-    -- Calcula a saúde
+    -- Calcula a saúde (GTA V base health é 100, max é 200 geralmente)
     if rawHealth > 100 then
         healthPercent = math.min(100, ((rawHealth - 100) / 200) * 100)
+    else
+        healthPercent = 0
     end
 
-    -- Atualiza o status da voz
     updateVoiceProximity()
-    
-    -- Atualiza o nome da rua
     updateStreetName()
 
-    -- Envia os dados para a NUI
     SendNUIMessage({
         action = "updateStatus",
         health = healthPercent,
         armor = armor,
-        hunger = GetResourceKvpInt("vRP:hunger") or 100,
-        thirst = GetResourceKvpInt("vRP:thirst") or 100,
+        hunger = GetResourceKvpInt("vRP:hunger") or 100, -- Ajuste conforme seu sistema de fome
+        thirst = GetResourceKvpInt("vRP:thirst") or 100, -- Ajuste conforme seu sistema de sede
         stamina = stamina,
-        stress = 0,
+        stress = 0, -- Implementar lógica de stress se houver
         isTalking = isTalking,
         voiceLevel = currentVoiceLevel,
         job = emprego,
@@ -177,10 +144,7 @@ function SendNotification(title, message, type, duration)
     if duration ~= nil then payload.duration = duration end
     SendNUIMessage(payload)
 end
-
 exports('SendNotification', SendNotification)
-
-
 
 function updateVehicleHud()
     local playerPed = PlayerPedId()
@@ -192,17 +156,11 @@ function updateVehicleHud()
         local engineOn = GetIsVehicleEngineRunning(vehicle)
         local locked = GetVehicleDoorLockStatus(vehicle) == 2
         
-        -- Estado do veículo (0-100%)
         local engineHealth = (GetVehicleEngineHealth(vehicle) / 1000.0) * 100
         local bodyHealth = (GetVehicleBodyHealth(vehicle) / 1000.0) * 100
         
-        -- Marcha atual
         local gear = GetVehicleCurrentGear(vehicle)
-        if gear == 0 then
-            gear = "R" -- Ré
-        elseif gear == 1 then
-            gear = "1" -- Neutro
-        end
+        if gear == 0 then gear = "R" elseif gear == 1 then gear = "1" end
         
         SendNUIMessage({
             action = "vehicleHUD",
@@ -217,11 +175,18 @@ function updateVehicleHud()
             bodyHealth = bodyHealth > 0 and bodyHealth or 0,
             gear = tostring(gear)
         })
+        
+        -- Garante que o minimapa apareça no carro (se habilitado)
+        if not isPaused and not isMenuOpen and Config.EnableMinimap then
+            DisplayRadar(true)
+        end
     else
         SendNUIMessage({
             action = "vehicleHUD",
             show = false
         })
+        -- Esconde minimapa a pé (opcional, estilo VRP padrão)
+        -- DisplayRadar(false) 
     end
 end
 
@@ -246,48 +211,89 @@ function updateWeaponHud()
     end
 end
 
-function getGameTime()
-    local hours = GetClockHours()
-    local minutes = GetClockMinutes()
-    
-    return {
-        hours = hours,
-        minutes = minutes
-    }
+-- =============================================
+-- EXPORT PARA OUTROS SCRIPTS (GARAGEM, ETC)
+-- =============================================
+-- Use: exports['ghost_hud_vrp']:setHudVisible(false) quando abrir a garagem
+exports('setHudVisible', function(visible)
+    isMenuOpen = not visible
+    SendNUIMessage({
+        action = "toggleHUD",
+        show = visible
+    })
+    if not visible then
+        DisplayRadar(false)
+    else
+        DisplayRadar(Config.EnableMinimap)
+    end
+end)
+
+-- =============================================
+-- LOAD LAYOUT (CARREGAR POSIÇÕES SALVAS)
+-- =============================================
+function LoadUserLayout()
+    local layoutString = GetResourceKvpString("ghost_hud_layout")
+    if layoutString then
+        local layout = json.decode(layoutString)
+        SendNUIMessage({
+            action = "loadLayout",
+            layout = layout
+        })
+    end
 end
 
 -- =============================================
--- THREADS
+-- THREADS PRINCIPAIS
 -- =============================================
 Citizen.CreateThread(function()
+    Wait(1000) -- Espera carregar NUI
+    LoadUserLayout()
+    
     while true do
         Citizen.Wait(200)
         
-        if not isPaused then
+        -- Verifica Pause Menu (ESC)
+        if IsPauseMenuActive() then
+            if not isMenuOpen then
+                isMenuOpen = true
+                SendNUIMessage({ action = "toggleHUD", show = false })
+                DisplayRadar(false)
+            end
+        else
+            -- Se estava no menu e saiu (e não tem outro bloqueio externo)
+            if isMenuOpen and not isPaused then 
+                -- NOTA: Se você usou o export setHudVisible(false) externamente, 
+                -- precisará chamar setHudVisible(true) lá também. 
+                -- Esta verificação aqui é primariamente para o ESC.
+                if not IsNuiFocused() then -- Só volta se não estiver em foco NUI
+                    isMenuOpen = false
+                    SendNUIMessage({ action = "toggleHUD", show = true })
+                    DisplayRadar(Config.EnableMinimap)
+                end
+            end
+        end
+
+        if not isPaused and not isMenuOpen then
             updatePlayerStatus()
-            updateStreetName()
             updateVehicleHud()
             updateWeaponHud()
             SendNUIMessage({
                 action = "getGameTime",
-                hours = getGameTime().hours,
-                minutes = getGameTime().minutes
+                hours = GetClockHours(),
+                minutes = GetClockMinutes()
             })
         end
     end
 end)
 
-
 -- =============================================
--- EVENTOS
+-- EVENTOS E CALLBACKS
 -- =============================================
 
-
--- Recebe a configuração atualizada do servidor
 RegisterNetEvent('vrp_hud:updateHUD')
 AddEventHandler('vrp_hud:updateHUD', function(newConfig)
     minimapEnabled = newConfig.minimapEnabled
-    DisplayRadar(newConfig.hudEnabled and newConfig.minimapEnabled)
+    ToggleMinimap(newConfig.hudEnabled and newConfig.minimapEnabled)
     SendNUIMessage({
         action = "updateHUD",
         config = newConfig
@@ -297,65 +303,57 @@ end)
 RegisterNetEvent('vrp_hud:openConfig')
 AddEventHandler('vrp_hud:openConfig', function(configData)
     configOpen = true
+    SetNuiFocus(true, true)
     SendNUIMessage({
         action = "openConfig",
         config = configData
     })
-    SetNuiFocus(true, true)
 end)
 
-RegisterNetEvent("vrp_hud:SendNotification")
-AddEventHandler("vrp_hud:SendNotification", function(data)
-    local payload = {
-        action = "showNotification",
-        title = data.title,
-        message = data.message,
-        type = data.type
-    }
-    if data.time ~= nil then
-        local t = tonumber(data.time)
-        if t then
-            if t >= 1000 then
-                payload.duration = t
-            else
-                payload.duration = t * 1000
-            end
-        end
-    end
-    SendNUIMessage(payload)
-end)
-
--- Callback para fechar o painel
+-- Callback: Fecha configuração
 RegisterNUICallback('closeConfig', function(data, cb)
     configOpen = false
     SetNuiFocus(false, false)
     cb({})
 end)
 
--- Callback para salvar a configuração
+-- Callback: Salva configuração geral (toggles)
 RegisterNUICallback('saveConfig', function(data, cb)
     TriggerServerEvent('vrp_hud:saveConfig', data.config)
     cb({})
 end)
 
--- Callback para o JS atualizar o minimapa
-RegisterNUICallback('updateMinimap', function(data, cb)
-    if data.show ~= nil then
-        DisplayRadar(data.show)
+-- Callback: Salva posições (Drag & Drop)
+RegisterNUICallback('saveLayout', function(data, cb)
+    if data.layout then
+        SetResourceKvp("ghost_hud_layout", json.encode(data.layout))
     end
     cb({})
 end)
 
--- Callback para o JS pegar a hora do jogo
-RegisterNUICallback('getGameTime', function(_, cb)
-    cb({ hours = GetClockHours(), minutes = GetClockMinutes() })
+-- Callback: Resetar layout
+RegisterNUICallback('resetLayout', function(data, cb)
+    DeleteResourceKvp("ghost_hud_layout")
+    cb({})
+end)
+
+-- Callback: Modo de edição (foco)
+RegisterNUICallback('setEditMode', function(data, cb)
+    SetNuiFocus(data.enabled, data.enabled)
+    cb({})
+end)
+
+RegisterNUICallback('updateMinimap', function(data, cb)
+    if data.show ~= nil then
+        ToggleMinimap(data.show)
+    end
+    cb({})
 end)
 
 -- =============================================
--- SISTEMA DE CINTO
+-- CINTO DE SEGURANÇA
 -- =============================================
 local exNoCarro = false
-
 Citizen.CreateThread(function()
     while true do
         local espera = 1000
@@ -367,101 +365,49 @@ Citizen.CreateThread(function()
             exNoCarro = true
             
             if cintoSeguranca then
-                DisableControlAction(0, 75)
+                DisableControlAction(0, 75, true) -- Desativa sair do veículo
             end
             
             if IsControlJustReleased(0, 47) then -- Tecla G
-                cintoSeguranca = not cintoSeguranca -- Remove o 'local' daqui
-                TriggerEvent("vrp_sound:source", cintoSeguranca and "belt" or "unbelt", 0.1)
-                SetPedConfigFlag(ped, 32, not cintoSeguranca)
-                print("[DEBUG] Cinto alterado para:", cintoSeguranca) -- Debug adicional
+                cintoSeguranca = not cintoSeguranca
+                -- Se tiver som, descomente: TriggerEvent("vrp_sound:source", cintoSeguranca and "belt" or "unbelt", 0.1)
+                
+                -- Flag 32: PED_FLAG_CAN_FLY_THRU_WINDSCREEN (true = não voa, false = voa)
+                -- Se cinto estiver ON, NÃO voa (false no SetPedConfigFlag)
+                SetPedConfigFlag(ped, 32, not cintoSeguranca) 
+                
+                if cintoSeguranca then
+                    SendNotification("CINTO", "Cinto colocado", "sucesso", 2000)
+                else
+                    SendNotification("CINTO", "Cinto retirado", "aviso", 2000)
+                end
             end
         elseif exNoCarro then
             exNoCarro = false
-            cintoSeguranca = false -- Remove o 'local' daqui
-            SetPedConfigFlag(ped, 32, true)
+            cintoSeguranca = false
+            SetPedConfigFlag(ped, 32, true) -- Reseta flag ao sair
         end
-        
         Wait(espera)
     end
 end)
--- =============================================
--- INICIALIZAÇÃO
--- =============================================
+
+-- Inicialização
 AddEventHandler('playerSpawned', function()
     TriggerServerEvent('vrp_hud:updatePlayerData')
-    -- On spawn, ensure minimap state is correctly applied
-    if Config.minimapEnabled ~= nil then
-        ToggleMinimap(Config.minimapEnabled)
-    else
-        -- Fallback to default if Config.minimapEnabled is not set yet
-        ToggleMinimap(true) 
-    end
+    ToggleMinimap(Config.EnableMinimap)
+    LoadUserLayout()
 end)
 
--- Initialize minimap state on resource start
-Citizen.CreateThread(function()
-    -- Wait for config to be loaded from server.lua
-    while Config.hudEnabled == nil do
-        Citizen.Wait(100)
-    end
-    ToggleMinimap(Config.minimapEnabled)
-end)
-
--- Comando para debug (opcional)
-RegisterCommand('togglemap', function()
-    minimapEnabled = not minimapEnabled
-    ToggleMinimap(minimapEnabled)
-    -- Also update the NUI config to reflect the change
-    Config.minimapEnabled = minimapEnabled
-    SendNUIMessage({
-        action = "updateHUD",
-        config = Config
-    })
-end, false)
-
-    
 RegisterNetEvent("Notify")
 AddEventHandler("Notify", function(type, message, time)
-    local title = ""
-    local notifyType = type
-    
-    -- Mapeamento dos títulos
-    if type == "negado" then
-        title = "NEGADO"
-    elseif type == "aviso" then
-        title = "AVISO"
-    elseif type == "sucesso" then
-        title = "SUCESSO"
-    elseif type == "policia" then
-        title = "POLÍCIA"
-    elseif type == "hospital" then
-        title = "HOSPITAL"
-    elseif type == "mecanica" then
-        title = "MECÂNICA"
-    else
-        title = "INFORMAÇÃO"
-        notifyType = "info"
-    end
-    
-    local payload = {
-        action = "Notify",
-        type = notifyType,
-        title = title,
-        message = message
+    local typeMap = {
+        ["negado"] = "error",
+        ["aviso"] = "warning",
+        ["sucesso"] = "success",
+        ["policia"] = "policia",
+        ["hospital"] = "hospital",
+        ["mecanica"] = "mecanica"
     }
-    if time ~= nil then payload.time = time end
-    SendNUIMessage(payload)
+    local notifyType = typeMap[type] or "info"
+    SendNotification(type:upper(), message, notifyType, time)
 end)
-
-
--- Comando simplificado para teste
-RegisterCommand('testenotify', function()
-    TriggerEvent("Notify", "negado", "Teste de notificação negado", 5)
-    Wait(2000)
-    TriggerEvent("Notify", "aviso", "Teste de notificação aviso", 5)
-    Wait(2000)
-    TriggerEvent("Notify", "sucesso", "Teste de notificação sucesso", 5)
-    Wait(2000)
-    TriggerEvent("Notify", "info", "Teste de notificação info", 5)
-end, false)

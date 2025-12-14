@@ -1567,3 +1567,141 @@ input:checked + .slider:before {
 #stress-fill { stroke: var(--stress-color); }
 #oxygen-fill { stroke: var(--oxygen-color); }
 #radiation-fill { stroke: var(--radiation-color); }
+
+/* ... SEU CÓDIGO CSS ORIGINAL (MANTENHA TUDO IGUAL ATÉ O FINAL) ... */
+:root {
+  --health-color: #ff3e3e;
+  --armor-color: #3e9fff;
+  --hunger-color: #ffaa3e;
+  --thirst-color: #3ec3ff;
+  --voice-color: #4caf50;
+  --stamina-color: #9c27b0;
+  --stress-color: #ff9800;
+  --oxygen-color: #00bcd4;
+  --text-color: #ffffff;
+  --text-shadow: 0 0 8px rgba(0, 0, 0, 0.5);
+  --clock-bg: rgba(0, 0, 0, 0.264);
+  --clock-transparent: 8px;
+}
+
+* {
+    transition: background-color 0.2s, transform 0.2s, opacity 0.2s;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: 'Segoe UI', sans-serif;
+  background: transparent !important;
+  overflow: hidden;
+  color: var(--text-color);
+  text-shadow: var(--text-shadow);
+}
+
+html, body {
+    background: transparent !important;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+
+#hud-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: transparent !important;
+    pointer-events: none;
+}
+
+.edit-mode {
+    background: rgba(0, 0, 0, 0.4); /* Fundo escuro para focar na edição */
+    pointer-events: all !important;
+}
+
+/* Estilo dos elementos quando arrastáveis */
+.edit-mode .hud-draggable {
+    border: 2px dashed #ffff00; /* Borda amarela */
+    background-color: rgba(255, 255, 0, 0.1);
+    cursor: move;
+    pointer-events: all !important;
+    position: absolute; /* Garante que respeite top/left */
+}
+
+/* Mostra elementos ocultos durante a edição (ex: hud carro quando a pé) */
+.edit-mode .hidden {
+    display: flex !important;
+    opacity: 0.7;
+}
+
+/* Botões de Ação na Config */
+.edit-actions {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+    padding: 0 10px;
+}
+
+.action-btn {
+    flex: 1;
+    padding: 10px;
+    border: none;
+    border-radius: 8px;
+    font-weight: bold;
+    color: white;
+    cursor: pointer;
+    font-family: 'Segoe UI', sans-serif;
+    transition: transform 0.2s;
+}
+
+.action-btn:hover {
+    transform: scale(1.05);
+}
+
+.edit-btn { background: #2196F3; }
+.reset-btn { background: #F44336; }
+
+/* Controles Flutuantes (Salvar/Cancelar) */
+#edit-controls {
+    position: absolute;
+    top: 50px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.8);
+    padding: 15px 30px;
+    border-radius: 50px;
+    display: flex;
+    gap: 20px;
+    align-items: center;
+    z-index: 9999;
+    border: 2px solid #2196F3;
+    pointer-events: all;
+}
+
+.edit-info { color: white; font-weight: bold; margin-right: 10px; }
+
+.save-btn {
+    background: #4CAF50;
+    border: none;
+    padding: 8px 20px;
+    border-radius: 20px;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.cancel-btn {
+    background: #F44336;
+    border: none;
+    padding: 8px 20px;
+    border-radius: 20px;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+}

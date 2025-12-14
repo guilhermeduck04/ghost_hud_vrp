@@ -8,6 +8,7 @@ version '1.0.0'
 lua54 'yes'
 
 client_scripts {
+    'client/config.lua', -- Adicionei o config aqui, antes do main
     'client/main.lua',
 }
 
@@ -15,7 +16,6 @@ server_scripts {
     '@vrp/lib/utils.lua',
     'server/server.lua'
 }
-
 
 ui_page 'html/index.html'
 
